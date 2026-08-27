@@ -196,6 +196,98 @@
   .style-switch button.active{
     background:var(--accent); color:#0a0e14;
   }
+
+  /* add-cam button */
+  .add-btn{
+    pointer-events:auto;
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel); border:1px solid var(--line);
+    color:var(--text); font-size:12px; font-weight:600;
+    padding:8px 14px; border-radius:20px; cursor:pointer;
+    font-family:inherit;
+  }
+  .add-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .add-btn.active{
+    background:var(--accent); color:#0a0e14; border-color:var(--accent);
+  }
+  #map.picking{ cursor:crosshair; }
+
+  .pick-hint{
+    position:absolute; top:64px; left:50%; transform:translateX(-50%);
+    z-index:950; background:var(--accent); color:#0a0e14;
+    font-size:12px; font-weight:600; padding:8px 16px; border-radius:20px;
+    display:none; box-shadow:0 6px 20px rgba(79,179,255,0.35);
+  }
+  .pick-hint.show{ display:block; }
+
+  .temp-marker{
+    width:22px; height:22px; border-radius:50%;
+    background:#ff8a1e; border:2px solid #0a0e14;
+    box-shadow:0 0 0 5px rgba(255,138,30,0.45), 0 0 16px rgba(255,138,30,0.6);
+  }
+
+  /* add-cam modal */
+  .modal-overlay{
+    position:absolute; inset:0; z-index:1300;
+    background:rgba(5,7,10,0.55);
+    display:none; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    width:100%; max-width:380px;
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:18px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.6);
+  }
+  .modal-box h3{
+    margin:0 0 4px; font-size:15px; color:var(--text);
+  }
+  .modal-box .coord{
+    font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:14px;
+  }
+  .field{ margin-bottom:12px; }
+  .field label{
+    display:block; font-size:11.5px; color:var(--text-dim); margin-bottom:5px;
+  }
+  .field input, .field textarea{
+    width:100%; background:#0a0e14; border:1px solid var(--line);
+    color:var(--text); font-size:13px; padding:9px 10px;
+    border-radius:8px; font-family:inherit; resize:none;
+  }
+  .field input:focus, .field textarea:focus{
+    outline:none; border-color:var(--accent);
+  }
+  .field .err{ color:var(--live-red); font-size:11px; margin-top:5px; display:none; }
+  .field .err.show{ display:block; }
+
+  .modal-actions{
+    display:flex; gap:8px; margin-top:4px;
+  }
+  .modal-actions button{
+    flex:1; padding:10px; border-radius:8px; border:none;
+    font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  .btn-cancel{ background:var(--line); color:var(--text-dim); }
+  .btn-cancel:hover{ color:var(--text); }
+  .btn-generate{ background:var(--accent); color:#0a0e14; }
+  .btn-generate:hover{ filter:brightness(1.08); }
+
+  .code-result{ margin-top:14px; display:none; }
+  .code-result.show{ display:block; }
+  .code-result pre{
+    background:#05070a; border:1px solid var(--line); border-radius:8px;
+    padding:10px; font-family:var(--mono); font-size:10.5px; color:#9fd6ff;
+    white-space:pre-wrap; word-break:break-all; margin:0 0 8px;
+    max-height:120px; overflow-y:auto;
+  }
+  .btn-copy{
+    width:100%; background:transparent; border:1px solid var(--accent);
+    color:var(--accent); padding:9px; border-radius:8px; font-size:12.5px;
+    font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  .btn-copy:hover{ background:rgba(79,179,255,0.1); }
+  .btn-copy.copied{ background:var(--accent); color:#0a0e14; }
 </style>
 </head>
 <body>
@@ -208,7 +300,10 @@
     <div class="title">부산 실시간 카메라</div>
   </div>
   <div class="count-pill"><span class="dot"></span>등록 <b id="camCount">0</b>개</div>
+  <button class="add-btn" id="addBtn">+ 카메라 추가</button>
 </div>
+
+<div class="pick-hint" id="pickHint">지도를 클릭해 카메라 위치를 선택하세요 (취소: 버튼 다시 클릭)</div>
 
 <div class="hint" id="hint">지도 위 점을 눌러보세요</div>
 
@@ -232,9 +327,41 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <h3>카메라 추가</h3>
+    <div class="coord" id="modalCoord">-</div>
+
+    <div class="field">
+      <label>이름</label>
+      <input type="text" id="fName" placeholder="예: 해운대 해수욕장">
+    </div>
+    <div class="field">
+      <label>유튜브 라이브 링크</label>
+      <input type="text" id="fUrl" placeholder="youtube.com/watch?v=... 또는 youtu.be/...">
+      <div class="err" id="fUrlErr">유튜브 링크에서 영상 ID를 찾지 못했어요. 링크를 확인해주세요.</div>
+    </div>
+    <div class="field">
+      <label>설명 (선택)</label>
+      <textarea id="fDesc" rows="2" placeholder="예: 해운대 해변가 실시간 화면"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modalCancel">취소</button>
+      <button class="btn-generate" id="modalGenerate">코드 생성</button>
+    </div>
+
+    <div class="code-result" id="codeResult">
+      <pre id="codeText"></pre>
+      <button class="btn-copy" id="btnCopy">코드 복사</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-  // ── 예시 데이터: 실제로는 이 배열을 원하는 만큼 늘리면 됩니다.
+
+  // ── 기본 예시 데이터: 실제로는 이 배열을 원하는 만큼 늘리면 됩니다.
   // videoId는 유튜브 라이브 스트림의 watch?v= 뒤에 오는 값입니다.
   const cams = [
     { name: "부산항대교 전망",     lat: 35.1046, lng: 129.0768, videoId: "jfKfPfyJRdk", desc: "부산항대교 인근 상시 라이브 스트림 예시" },
@@ -248,8 +375,8 @@
   const map = L.map('map', {
     zoomControl: true,
     attributionControl: true,
-    minZoom: 9,
-    maxZoom: 18,
+    minZoom: 3,
+    maxZoom: 20,
   }).setView([35.16, 129.15], 12);
 
   // ── 지도 스타일 정의 ──────────────────────────────
@@ -307,8 +434,6 @@
   }
   checkTileLoad();
 
-  document.getElementById('camCount').textContent = cams.length;
-
   const panel = document.getElementById('panel');
   const hint = document.getElementById('hint');
   let activeMarker = null;
@@ -340,10 +465,128 @@
 
   document.getElementById('panelClose').addEventListener('click', closeCam);
 
-  cams.forEach(cam => {
+  const camCountEl = document.getElementById('camCount');
+
+  function addCamMarker(cam){
     const icon = L.divIcon({ className: 'cam-marker', iconSize: [20,20] });
     const marker = L.marker([cam.lat, cam.lng], { icon }).addTo(map);
     marker.on('click', () => openCam(cam, marker));
+    return marker;
+  }
+
+  function updateCount(){
+    camCountEl.textContent = cams.length;
+  }
+
+  cams.forEach(addCamMarker);
+  updateCount();
+
+  // ── 카메라 추가 기능 ──────────────────────────────
+  const addBtn = document.getElementById('addBtn');
+  const pickHint = document.getElementById('pickHint');
+  const mapEl = document.getElementById('map');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalCoord = document.getElementById('modalCoord');
+  const codeResult = document.getElementById('codeResult');
+  const codeText = document.getElementById('codeText');
+  const btnCopy = document.getElementById('btnCopy');
+
+  let pickMode = false;
+  let pickedLatLng = null;
+  let tempMarker = null;
+
+  function togglePickMode(force){
+    pickMode = force !== undefined ? force : !pickMode;
+    addBtn.classList.toggle('active', pickMode);
+    pickHint.classList.toggle('show', pickMode);
+    mapEl.classList.toggle('picking', pickMode);
+  }
+
+  addBtn.addEventListener('click', () => togglePickMode());
+
+  map.on('click', (e) => {
+    if(!pickMode) return;
+    pickedLatLng = e.latlng;
+    if(tempMarker) map.removeLayer(tempMarker);
+    tempMarker = L.marker(e.latlng, { icon: L.divIcon({ className:'temp-marker', iconSize:[22,22] }) }).addTo(map);
+
+    modalCoord.textContent = `위도 ${e.latlng.lat.toFixed(6)}, 경도 ${e.latlng.lng.toFixed(6)}`;
+    document.getElementById('fName').value = '';
+    document.getElementById('fUrl').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('fUrlErr').classList.remove('show');
+    codeResult.classList.remove('show');
+    modalOverlay.classList.add('show');
+    togglePickMode(false);
+  });
+
+  function extractYoutubeId(input){
+    input = input.trim();
+    // 이미 순수 ID(11자, 영숫자+-_)만 입력한 경우
+    if(/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+      /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+      /[?&]v=([a-zA-Z0-9_-]{11})/,
+    ];
+    for(const re of patterns){
+      const m = input.match(re);
+      if(m) return m[1];
+    }
+    return null;
+  }
+
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
+
+  function closeModal(){
+    modalOverlay.classList.remove('show');
+    if(tempMarker){ map.removeLayer(tempMarker); tempMarker = null; }
+  }
+
+  document.getElementById('modalGenerate').addEventListener('click', () => {
+    const name = document.getElementById('fName').value.trim() || '이름 없는 카메라';
+    const urlRaw = document.getElementById('fUrl').value;
+    const desc = document.getElementById('fDesc').value.trim() || '설명 없음';
+    const vid = extractYoutubeId(urlRaw);
+    const errEl = document.getElementById('fUrlErr');
+
+    if(!vid){
+      errEl.classList.add('show');
+      return;
+    }
+    errEl.classList.remove('show');
+
+    const camData = {
+      name,
+      lat: Number(pickedLatLng.lat.toFixed(6)),
+      lng: Number(pickedLatLng.lng.toFixed(6)),
+      videoId: vid,
+      desc
+    };
+
+    const snippet =
+`{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, videoId: "${vid}", desc: "${desc.replace(/"/g,'\\"')}" },`;
+
+    codeText.textContent = snippet;
+    codeResult.classList.add('show');
+
+    // 지금 화면에도 바로 미리보기 마커로 추가(새로고침하면 사라짐 — 실제 저장은 아래 코드를 복사해 파일에 붙여넣어야 함)
+    addCamMarker(camData);
+    cams.push(camData);
+    updateCount();
+  });
+
+  btnCopy.addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(codeText.textContent);
+      btnCopy.textContent = '복사됨 ✓';
+      btnCopy.classList.add('copied');
+      setTimeout(() => { btnCopy.textContent = '코드 복사'; btnCopy.classList.remove('copied'); }, 1600);
+    }catch(err){
+      btnCopy.textContent = '복사 실패 — 직접 선택해 복사하세요';
+    }
   });
 </script>
 
