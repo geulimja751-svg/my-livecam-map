@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>라이브캠 지도 데모</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
 <style>
   :root{
     --bg: #0a0e14;
@@ -15,6 +17,7 @@
     --accent: #4fb3ff;
     --accent-glow: rgba(79,179,255,0.55);
     --live-red: #ff4d5e;
+    --cctv-color: #ffb020;
     --mono: 'SF Mono', 'Consolas', 'Menlo', monospace;
   }
   *{box-sizing:border-box;}
@@ -29,9 +32,6 @@
     background:var(--bg);
   }
   .leaflet-container{ background:var(--bg); }
-  .dark-tiles{
-    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
-  }
 
   /* top bar */
   .topbar{
@@ -39,6 +39,7 @@
     display:flex; align-items:center; gap:10px;
     padding:16px 18px;
     pointer-events:none;
+    flex-wrap:wrap;
   }
   .brand{
     display:flex; flex-direction:column; gap:2px;
@@ -83,6 +84,31 @@
     box-shadow:0 0 0 5px rgba(255,176,32,0.5), 0 0 18px rgba(255,176,32,0.6);
   }
 
+  /* ITS CCTV 마커 — 일반 라이브캠과 색을 다르게 구분한다 */
+  .cctv-marker{
+    width:12px; height:12px; border-radius:50%;
+    background:var(--cctv-color);
+    border:1.5px solid #0a0e14;
+    box-shadow:0 0 0 3px rgba(255,176,32,0.35), 0 0 8px rgba(255,176,32,0.5);
+    cursor:pointer;
+  }
+  .cctv-marker.active{
+    background:#ff4d5e;
+    box-shadow:0 0 0 4px rgba(255,77,94,0.45), 0 0 10px rgba(255,77,94,0.6);
+  }
+  .marker-cluster-custom{
+    background:rgba(255,176,32,0.25);
+    border:1px solid rgba(255,176,32,0.6);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:#0a0e14; font-weight:700; font-size:12px;
+  }
+  .marker-cluster-custom span{
+    background:var(--cctv-color);
+    width:100%; height:100%; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+
   /* bottom sheet / side panel */
   .panel{
     position:absolute; z-index:1100;
@@ -93,7 +119,6 @@
     transform: translateY(110%);
     transition: transform 0.32s cubic-bezier(.2,.9,.25,1);
   }
-  /* desktop: right side panel */
   @media (min-width: 720px){
     .panel{
       top:16px; right:16px; bottom:16px; width:380px;
@@ -101,7 +126,6 @@
     }
     .panel.open{ transform: translateX(0); }
   }
-  /* mobile: bottom sheet */
   @media (max-width: 719px){
     .panel{
       left:0; right:0; bottom:0; height:58%;
@@ -141,7 +165,7 @@
     position:relative; width:100%; aspect-ratio:16/9;
     background:#000; flex-shrink:0;
   }
-  .video-wrap iframe{
+  .video-wrap iframe, .video-wrap video{
     position:absolute; inset:0; width:100%; height:100%; border:0;
   }
   .external-cta{
@@ -165,6 +189,18 @@
     text-decoration:none;
   }
   .external-cta-btn:hover{ filter:brightness(1.08); }
+
+  .video-state{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:8px; color:var(--text-dim); font-size:12.5px; text-align:center; padding:14px;
+    background:#05070a;
+  }
+  .video-state .spin{
+    width:22px; height:22px; border:2px solid var(--line); border-top-color:var(--accent);
+    border-radius:50%; animation: sp 0.7s linear infinite;
+  }
+  @keyframes sp{ to{ transform:rotate(360deg); } }
 
   .panel-body{
     padding:14px 16px; overflow-y:auto;
@@ -218,7 +254,7 @@
     background:var(--accent); color:#0a0e14;
   }
 
-  /* add-cam button */
+  /* top bar buttons (add / cctv / list) */
   .add-btn{
     pointer-events:auto;
     display:flex; align-items:center; gap:6px;
@@ -230,6 +266,9 @@
   .add-btn:hover{ border-color:var(--accent); color:var(--accent); }
   .add-btn.active{
     background:var(--accent); color:#0a0e14; border-color:var(--accent);
+  }
+  #cctvBtn.active{
+    background:var(--cctv-color); color:#0a0e14; border-color:var(--cctv-color);
   }
   #map.picking{ cursor:crosshair; }
 
@@ -309,6 +348,50 @@
   }
   .btn-copy:hover{ background:rgba(79,179,255,0.1); }
   .btn-copy.copied{ background:var(--accent); color:#0a0e14; }
+
+  /* ── 카메라 목록/검색 패널 ── */
+  .list-panel{
+    position:absolute; z-index:1150;
+    background:var(--panel); border:1px solid var(--line);
+    display:flex; flex-direction:column;
+    box-shadow: 8px 0 40px rgba(0,0,0,0.5);
+    transform: translateX(-110%);
+    transition: transform 0.3s cubic-bezier(.2,.9,.25,1);
+  }
+  @media (min-width: 720px){
+    .list-panel{ top:16px; left:16px; bottom:16px; width:300px; border-radius:14px; }
+    .list-panel.open{ transform:translateX(0); }
+  }
+  @media (max-width: 719px){
+    .list-panel{ top:0; left:0; bottom:0; width:82%; max-width:320px; border-radius:0 16px 16px 0; }
+    .list-panel.open{ transform:translateX(0); }
+  }
+  .list-head{
+    display:flex; align-items:center; gap:8px;
+    padding:14px 14px; border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .list-head input{
+    flex:1; background:#0a0e14; border:1px solid var(--line);
+    color:var(--text); font-size:13px; padding:8px 10px; border-radius:8px;
+    font-family:inherit;
+  }
+  .list-head input:focus{ outline:none; border-color:var(--accent); }
+  .list-items{
+    list-style:none; margin:0; padding:6px; overflow-y:auto; flex:1;
+  }
+  .list-items li{
+    padding:9px 10px; border-radius:8px; cursor:pointer;
+    font-size:13px; color:var(--text);
+    display:flex; align-items:center; gap:8px;
+  }
+  .list-items li:hover{ background:var(--line); }
+  .list-items li .tag{
+    width:7px; height:7px; border-radius:50%; flex-shrink:0;
+    background:var(--accent);
+  }
+  .list-items li.is-cctv .tag{ background:var(--cctv-color); }
+  .list-items li .nm{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .list-empty{ padding:16px 12px; color:var(--text-dim); font-size:12px; text-align:center; }
 </style>
 </head>
 <body>
@@ -320,8 +403,10 @@
     <div class="kicker">Live Cam Map · Demo</div>
     <div class="title">부산 실시간 카메라</div>
   </div>
-  <div class="count-pill"><span class="dot"></span>등록 <b id="camCount">0</b>개</div>
+  <button class="add-btn" id="listBtn">☰ 목록</button>
+  <button class="add-btn" id="cctvBtn">📹 국도 CCTV</button>
   <button class="add-btn" id="addBtn">+ 카메라 추가</button>
+  <div class="count-pill"><span class="dot"></span>등록 <b id="camCount">0</b>개</div>
 </div>
 
 <div class="pick-hint" id="pickHint">지도를 클릭해 카메라 위치를 선택하세요 (취소: 버튼 다시 클릭)</div>
@@ -332,6 +417,15 @@
   <button data-style="dark" class="active">다크</button>
   <button data-style="clean">클린</button>
   <button data-style="satellite">위성</button>
+</div>
+
+<!-- 카메라 목록/검색 패널 -->
+<div class="list-panel" id="listPanel">
+  <div class="list-head">
+    <input type="text" id="listSearch" placeholder="카메라 이름 검색">
+    <button class="panel-close" id="listClose">✕</button>
+  </div>
+  <ul class="list-items" id="listItems"></ul>
 </div>
 
 <div class="panel" id="panel">
@@ -380,6 +474,8 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
 <script>
 
   // ── 기본 예시 데이터: 실제로는 이 배열을 원하는 만큼 늘리면 됩니다.
@@ -402,13 +498,12 @@
   }).setView([35.16, 129.15], 12);
 
   // ── 지도 스타일 정의 ──────────────────────────────
-  // dark: OSM 표준 타일 + CSS 반전 필터 (미리보기 샌드박스에서도 안정적으로 로드됨)
-  // clean: CARTO Voyager (밝고 깔끔한 스타일, 실제 배포 후 사용 권장)
-  // satellite: Esri 위성 이미지 (무료, API 키 불필요, 실제 배포 후 사용 권장)
   const styles = {
     dark: {
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      options: { attribution: '&copy; OpenStreetMap contributors', subdomains: 'abc', maxZoom: 19, className: 'dark-tiles' }
+      // CARTO가 무료로 제공하는 공개 다크 베이스맵. CSS 반전 필터 없이도
+      // 처음부터 어두운 색으로 그려져서 샘플 사이트와 같은 느낌이 난다.
+      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      options: { attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }
     },
     clean: {
       url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
@@ -439,7 +534,6 @@
     if(btn) switchStyle(btn.dataset.style);
   });
 
-  // 타일이 끝내 로드되지 않을 경우(미리보기 샌드박스 등) 대비한 안내 배너
   function checkTileLoad(){
     document.getElementById('tileWarn')?.remove();
     let loaded = false;
@@ -459,11 +553,19 @@
   const panel = document.getElementById('panel');
   const hint = document.getElementById('hint');
   let activeMarker = null;
+  let activeHls = null;               // 지금 재생 중인 HLS 인스턴스(CCTV용) — 카메라를 바꿀 때 반드시 정리한다
+  const camMarkers = new Map();       // cam(object) -> leaflet marker, 목록 패널에서 클릭했을 때 찾기 위함
+
+  function stopVideo(){
+    if(activeHls){ try{ activeHls.destroy(); }catch(e){} activeHls = null; }
+    document.getElementById('videoWrap').innerHTML = '';
+  }
 
   function openCam(cam, marker){
     if(activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = marker;
     marker.getElement()?.classList.add('active');
+    stopVideo();
 
     document.getElementById('panelTitle').textContent = cam.name;
     document.getElementById('panelLoc').textContent = cam.name;
@@ -479,7 +581,6 @@
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen></iframe>`;
     } else if(cam.externalUrl){
-      // 리다이렉트/외부 링크 형식 — iframe 임베드가 막혀있을 수 있어 새 탭으로 엽니다
       panelSrc.textContent = `source: ${cam.externalUrl}`;
       videoWrap.innerHTML = `
         <div class="external-cta">
@@ -496,7 +597,7 @@
 
   function closeCam(){
     panel.classList.remove('open');
-    document.getElementById('videoWrap').innerHTML = ''; // 재생 중지
+    stopVideo();
     if(activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = null;
   }
@@ -509,15 +610,203 @@
     const icon = L.divIcon({ className: 'cam-marker', iconSize: [20,20] });
     const marker = L.marker([cam.lat, cam.lng], { icon }).addTo(map);
     marker.on('click', () => openCam(cam, marker));
+    camMarkers.set(cam, marker);
     return marker;
   }
 
   function updateCount(){
-    camCountEl.textContent = cams.length;
+    camCountEl.textContent = cams.length + (cctvOn ? cctvLayer.getLayers().length : 0);
+    if(listPanel.classList.contains('open')) renderList(listSearch.value);
   }
 
   cams.forEach(addCamMarker);
   updateCount();
+
+  // ══════════════════════════════════════════════════════════════
+  // ── ITS 국가교통정보센터 공공 CCTV 연동 ──────────────────────────
+  //
+  // 1) https://www.its.go.kr → 오픈API → CCTV 정보 활용신청으로
+  //    API 키를 발급받아 아래 ITS_API_KEY 에 넣으세요.
+  // 2) 브라우저에서 fetch 가 CORS 로 막히면(개발자도구 콘솔에 에러가 뜨면)
+  //    Cloudflare Worker 같은 가벼운 프록시를 하나 두고 ITS_ENDPOINT 를
+  //    그 프록시 주소로 바꿔주면 됩니다.
+  // 3) type 은 ex(고속도로) / its(국도) / all(전체) 중 하나입니다.
+  //    전국을 한 번에 부르면 무거우니, 지금 지도에 보이는 범위(bounds)만
+  //    불러오고, 너무 축소된 상태(zoom 11 미만)에서는 부르지 않습니다.
+  // ══════════════════════════════════════════════════════════════
+  const ITS_API_KEY = 'YOUR_ITS_API_KEY';  // ← 여기에 발급받은 키를 넣으세요
+  const ITS_ENDPOINT = 'https://openapi.its.go.kr:9443/cctvInfo';
+  const ITS_MIN_ZOOM = 11;                 // 이보다 축소되면 CCTV를 불러오지 않는다
+
+  let cctvOn = false;
+  let cctvLoading = false;
+  const cctvLayer = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    disableClusteringAtZoom: 15,
+    iconCreateFunction: cluster => L.divIcon({
+      html: `<span>${cluster.getChildCount()}</span>`,
+      className: 'marker-cluster-custom',
+      iconSize: [36, 36],
+    }),
+  });
+
+  function itsUrl(bounds){
+    const p = new URLSearchParams({
+      apiKey: ITS_API_KEY,
+      type: 'all',
+      cctvType: '1',        // 1 = 실시간 스트리밍(HLS) 제공 카메라만
+      minX: bounds.getWest(),
+      maxX: bounds.getEast(),
+      minY: bounds.getSouth(),
+      maxY: bounds.getNorth(),
+      getType: 'json',
+    });
+    return `${ITS_ENDPOINT}?${p.toString()}`;
+  }
+
+  async function loadCctvInView(){
+    if(!cctvOn || cctvLoading) return;
+    if(map.getZoom() < ITS_MIN_ZOOM){
+      cctvLayer.clearLayers();
+      updateCount();
+      return;
+    }
+    cctvLoading = true;
+    try{
+      const res = await fetch(itsUrl(map.getBounds()));
+      if(!res.ok) throw new Error('http ' + res.status);
+      const data = await res.json();
+      const list = (data.response && data.response.data) || [];
+      cctvLayer.clearLayers();
+      list.forEach(c => {
+        if(!c.coordy || !c.coordx) return;
+        const icon = L.divIcon({ className: 'cctv-marker', iconSize: [12,12] });
+        const marker = L.marker([c.coordy, c.coordx], { icon });
+        marker._cctvName = c.cctvname || 'CCTV';   // 목록/검색 패널이 이 이름을 읽는다
+        marker.on('click', () => openCctv(c, marker));
+        cctvLayer.addLayer(marker);
+      });
+      updateCount();
+    }catch(e){
+      // 키를 아직 안 넣었거나 CORS 가 막혔을 때 여기로 온다.
+      console.warn('ITS CCTV 로드 실패 (API 키 미설정이거나 CORS 문제일 수 있음):', e.message);
+    }finally{
+      cctvLoading = false;
+    }
+  }
+
+  function openCctv(c, marker){
+    if(activeMarker) activeMarker.getElement()?.classList.remove('active');
+    activeMarker = marker;
+    marker.getElement()?.classList.add('active');
+    stopVideo();
+
+    document.getElementById('panelTitle').textContent = c.cctvname || 'CCTV';
+    document.getElementById('panelLoc').textContent = c.cctvname || '-';
+    document.getElementById('panelDesc').textContent =
+      (c.roadsectionid ? `구간: ${c.roadsectionid}` : '국가교통정보센터 실시간 CCTV');
+    document.getElementById('panelSrc').textContent = 'source: 국가교통정보센터(ITS)';
+
+    const videoWrap = document.getElementById('videoWrap');
+    videoWrap.innerHTML = '<div class="video-state" id="cctvState"><div class="spin"></div><div>불러오는 중…</div></div>';
+
+    if(!c.cctvurl){
+      videoWrap.innerHTML = '<div class="video-state">이 카메라는 스트림 주소가 없습니다</div>';
+    }else{
+      videoWrap.innerHTML += '<video id="cctvVideo" muted playsinline></video>';
+      const video = document.getElementById('cctvVideo');
+      const state = document.getElementById('cctvState');
+
+      if(window.Hls && Hls.isSupported()){
+        activeHls = new Hls();
+        activeHls.loadSource(c.cctvurl);
+        activeHls.attachMedia(video);
+        activeHls.on(Hls.Events.MANIFEST_PARSED, () => { state?.remove(); video.play().catch(()=>{}); });
+        activeHls.on(Hls.Events.ERROR, (_, d) => {
+          if(d.fatal) videoWrap.innerHTML = '<div class="video-state">이 카메라는 지금 재생할 수 없습니다</div>';
+        });
+      }else if(video.canPlayType('application/vnd.apple.mpegurl')){
+        video.src = c.cctvurl;
+        video.addEventListener('loadedmetadata', () => state?.remove());
+        video.play().catch(()=>{});
+      }else{
+        videoWrap.innerHTML = '<div class="video-state">이 브라우저에서는 재생할 수 없습니다</div>';
+      }
+    }
+
+    panel.classList.add('open');
+    hint.classList.add('hidden');
+  }
+
+  function toggleCctv(){
+    cctvOn = !cctvOn;
+    document.getElementById('cctvBtn').classList.toggle('active', cctvOn);
+    if(cctvOn){
+      map.addLayer(cctvLayer);
+      loadCctvInView();
+    }else{
+      map.removeLayer(cctvLayer);
+      cctvLayer.clearLayers();
+      updateCount();
+    }
+  }
+
+  document.getElementById('cctvBtn').addEventListener('click', toggleCctv);
+  map.on('moveend', () => { if(cctvOn) loadCctvInView(); });
+
+  // ── 카메라 목록/검색 패널 ──────────────────────────
+  const listPanel = document.getElementById('listPanel');
+  const listItems = document.getElementById('listItems');
+  const listSearch = document.getElementById('listSearch');
+
+  function renderList(filterText){
+    const q = (filterText || '').trim().toLowerCase();
+    listItems.innerHTML = '';
+    let count = 0;
+
+    cams.filter(c => !q || c.name.toLowerCase().includes(q)).forEach(c => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="tag"></span><span class="nm">${c.name}</span>`;
+      li.addEventListener('click', () => {
+        map.flyTo([c.lat, c.lng], 15, { duration: 0.6 });
+        const marker = camMarkers.get(c);
+        if(marker) openCam(c, marker);
+        listPanel.classList.remove('open');
+      });
+      listItems.appendChild(li);
+      count++;
+    });
+
+    // CCTV는 지금 지도에 로드된 것만 목록에 보여준다(전국 CCTV는 수천 개라 전부 담지 않는다)
+    if(cctvOn){
+      cctvLayer.eachLayer(marker => {
+        const ll = marker.getLatLng();
+        const name = marker._cctvName || 'CCTV';
+        if(q && !name.toLowerCase().includes(q)) return;
+        const li = document.createElement('li');
+        li.className = 'is-cctv';
+        li.innerHTML = `<span class="tag"></span><span class="nm">${name}</span>`;
+        li.addEventListener('click', () => {
+          map.flyTo(ll, Math.max(map.getZoom(), 15), { duration: 0.6 });
+          marker.fire('click');
+          listPanel.classList.remove('open');
+        });
+        listItems.appendChild(li);
+        count++;
+      });
+    }
+
+    if(!count){
+      listItems.innerHTML = '<li class="list-empty" style="cursor:default">검색 결과가 없습니다</li>';
+    }
+  }
+
+  document.getElementById('listBtn').addEventListener('click', () => {
+    listPanel.classList.toggle('open');
+    if(listPanel.classList.contains('open')) renderList(listSearch.value);
+  });
+  document.getElementById('listClose').addEventListener('click', () => listPanel.classList.remove('open'));
+  listSearch.addEventListener('input', () => renderList(listSearch.value));
 
   // ── 카메라 추가 기능 ──────────────────────────────
   const addBtn = document.getElementById('addBtn');
@@ -560,7 +849,6 @@
 
   function extractYoutubeId(input){
     input = input.trim();
-    // 이미 순수 ID(11자, 영숫자+-_)만 입력한 경우
     if(/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
     const patterns = [
       /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
@@ -600,7 +888,6 @@
         desc
       };
     } else if(/^https?:\/\//i.test(urlRaw)){
-      // 표준 유튜브 영상 ID를 못 찾았지만 http(s) 링크는 맞음 → 리다이렉트/외부 링크로 저장
       camData = {
         name,
         lat: Number(pickedLatLng.lat.toFixed(6)),
@@ -621,7 +908,6 @@
     codeText.textContent = snippet;
     codeResult.classList.add('show');
 
-    // 지금 화면에도 바로 미리보기 마커로 추가(새로고침하면 사라짐 — 실제 저장은 아래 코드를 복사해 파일에 붙여넣어야 함)
     addCamMarker(camData);
     cams.push(camData);
     updateCount();
