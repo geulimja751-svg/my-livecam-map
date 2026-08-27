@@ -500,10 +500,11 @@
   // ── 지도 스타일 정의 ──────────────────────────────
   const styles = {
     dark: {
-      // CARTO가 무료로 제공하는 공개 다크 베이스맵. CSS 반전 필터 없이도
-      // 처음부터 어두운 색으로 그려져서 샘플 사이트와 같은 느낌이 난다.
-      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      options: { attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }
+      // CARTO 다크 타일은 최근 API 키 등록을 요구하도록 바뀌어서,
+      // 키 없이 바로 쓸 수 있는 Esri의 무료 다크 캔버스 타일로 대신한다.
+      // (이미 쓰고 있는 "위성" 스타일과 같은 Esri 서비스라 안정적이다)
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      options: { attribution: 'Esri, HERE, Garmin, &copy; OpenStreetMap contributors', maxZoom: 20, maxNativeZoom: 16 }
     },
     clean: {
       url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
