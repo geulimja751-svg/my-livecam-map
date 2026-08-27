@@ -144,6 +144,27 @@
   .video-wrap iframe{
     position:absolute; inset:0; width:100%; height:100%; border:0;
   }
+  .external-cta{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; padding:20px; text-align:center;
+    background:linear-gradient(180deg,#0d1420,#05070a);
+  }
+  .external-cta-icon{
+    width:44px; height:44px; border-radius:50%;
+    background:var(--accent); color:#0a0e14;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+  }
+  .external-cta-text{ font-size:12.5px; color:var(--text-dim); }
+  .external-cta-btn{
+    margin-top:4px;
+    background:var(--accent); color:#0a0e14;
+    font-size:12.5px; font-weight:700;
+    padding:9px 16px; border-radius:20px;
+    text-decoration:none;
+  }
+  .external-cta-btn:hover{ filter:brightness(1.08); }
 
   .panel-body{
     padding:14px 16px; overflow-y:auto;
@@ -337,9 +358,9 @@
       <input type="text" id="fName" placeholder="예: 해운대 해수욕장">
     </div>
     <div class="field">
-      <label>유튜브 라이브 링크</label>
-      <input type="text" id="fUrl" placeholder="youtube.com/watch?v=... 또는 youtu.be/...">
-      <div class="err" id="fUrlErr">유튜브 링크에서 영상 ID를 찾지 못했어요. 링크를 확인해주세요.</div>
+      <label>영상 링크</label>
+      <input type="text" id="fUrl" placeholder="유튜브 링크 또는 라이브 리다이렉트 링크(https://...)">
+      <div class="err" id="fUrlErr">링크를 인식하지 못했어요. http(s)로 시작하는 주소인지 확인해주세요.</div>
     </div>
     <div class="field">
       <label>설명 (선택)</label>
@@ -446,11 +467,27 @@
     document.getElementById('panelTitle').textContent = cam.name;
     document.getElementById('panelLoc').textContent = cam.name;
     document.getElementById('panelDesc').textContent = cam.desc;
-    document.getElementById('panelSrc').textContent = `source: youtube.com/watch?v=${cam.videoId}`;
-    document.getElementById('videoWrap').innerHTML =
-      `<iframe src="https://www.youtube.com/embed/${cam.videoId}?autoplay=1&mute=1"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen></iframe>`;
+
+    const videoWrap = document.getElementById('videoWrap');
+    const panelSrc = document.getElementById('panelSrc');
+
+    if(cam.videoId){
+      panelSrc.textContent = `source: youtube.com/watch?v=${cam.videoId}`;
+      videoWrap.innerHTML =
+        `<iframe src="https://www.youtube.com/embed/${cam.videoId}?autoplay=1&mute=1"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen></iframe>`;
+    } else if(cam.externalUrl){
+      // 리다이렉트/외부 링크 형식 — iframe 임베드가 막혀있을 수 있어 새 탭으로 엽니다
+      panelSrc.textContent = `source: ${cam.externalUrl}`;
+      videoWrap.innerHTML = `
+        <div class="external-cta">
+          <div class="external-cta-icon">▶</div>
+          <div class="external-cta-text">이 카메라는 새 탭에서 열립니다</div>
+          <a class="external-cta-btn" href="${cam.externalUrl}" target="_blank" rel="noopener noreferrer">라이브 보러 가기 ↗</a>
+        </div>`;
+      window.open(cam.externalUrl, '_blank', 'noopener,noreferrer');
+    }
 
     panel.classList.add('open');
     hint.classList.add('hidden');
@@ -547,27 +584,38 @@
 
   document.getElementById('modalGenerate').addEventListener('click', () => {
     const name = document.getElementById('fName').value.trim() || '이름 없는 카메라';
-    const urlRaw = document.getElementById('fUrl').value;
+    const urlRaw = document.getElementById('fUrl').value.trim();
     const desc = document.getElementById('fDesc').value.trim() || '설명 없음';
     const vid = extractYoutubeId(urlRaw);
     const errEl = document.getElementById('fUrlErr');
 
-    if(!vid){
+    let camData;
+    if(vid){
+      camData = {
+        name,
+        lat: Number(pickedLatLng.lat.toFixed(6)),
+        lng: Number(pickedLatLng.lng.toFixed(6)),
+        videoId: vid,
+        desc
+      };
+    } else if(/^https?:\/\//i.test(urlRaw)){
+      // 표준 유튜브 영상 ID를 못 찾았지만 http(s) 링크는 맞음 → 리다이렉트/외부 링크로 저장
+      camData = {
+        name,
+        lat: Number(pickedLatLng.lat.toFixed(6)),
+        lng: Number(pickedLatLng.lng.toFixed(6)),
+        externalUrl: urlRaw,
+        desc
+      };
+    } else {
       errEl.classList.add('show');
       return;
     }
     errEl.classList.remove('show');
 
-    const camData = {
-      name,
-      lat: Number(pickedLatLng.lat.toFixed(6)),
-      lng: Number(pickedLatLng.lng.toFixed(6)),
-      videoId: vid,
-      desc
-    };
-
-    const snippet =
-`{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, videoId: "${vid}", desc: "${desc.replace(/"/g,'\\"')}" },`;
+    const snippet = camData.videoId
+      ? `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, videoId: "${camData.videoId}", desc: "${desc.replace(/"/g,'\\"')}" },`
+      : `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, externalUrl: "${camData.externalUrl.replace(/"/g,'\\"')}", desc: "${desc.replace(/"/g,'\\"')}" },`;
 
     codeText.textContent = snippet;
     codeResult.classList.add('show');
