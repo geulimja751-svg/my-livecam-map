@@ -105,6 +105,15 @@
     width:100%; height:100%; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
   }
+  .leaflet-tooltip.cam-tip{
+    background:var(--panel); border:1px solid var(--line);
+    color:var(--text); font-size:12px; font-weight:600;
+    padding:6px 10px; border-radius:8px;
+    box-shadow:0 4px 16px rgba(0,0,0,0.45);
+  }
+  .leaflet-tooltip.cam-tip::before{
+    border-top-color:var(--line);
+  }
   .panel{
     position:absolute; z-index:1100;
     background:var(--panel);
@@ -180,28 +189,20 @@
   .video-wrap iframe, .video-wrap video{
     position:absolute; inset:0; width:100%; height:100%; border:0; max-width:100%;
   }
-  .external-cta{
-    position:absolute; inset:0;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:10px; padding:20px; text-align:center;
-    background:linear-gradient(180deg,rgba(13,20,32,0.92),rgba(5,7,10,0.95));
-    z-index:2;
+  .video-footer{
+    display:none; align-items:center; justify-content:flex-end;
+    padding:8px 12px; border-top:1px solid var(--line);
+    background:var(--panel); flex-shrink:0;
   }
-  .external-cta-icon{
-    width:44px; height:44px; border-radius:50%;
-    background:var(--accent); color:#0a0e14;
-    display:flex; align-items:center; justify-content:center;
-    font-size:16px;
+  .video-footer a{
+    font-size:12px; font-weight:600; color:var(--accent);
+    text-decoration:none; padding:6px 12px; border-radius:8px;
+    border:1px solid rgba(79,179,255,0.35);
+    background:rgba(79,179,255,0.08);
   }
-  .external-cta-text{ font-size:12.5px; color:var(--text-dim); }
-  .external-cta-btn{
-    margin-top:4px;
-    background:var(--accent); color:#0a0e14;
-    font-size:12.5px; font-weight:700;
-    padding:9px 16px; border-radius:20px;
-    text-decoration:none;
+  .video-footer a:hover{
+    background:rgba(79,179,255,0.16);
   }
-  .external-cta-btn:hover{ filter:brightness(1.08); }
   .video-state{
     position:absolute; inset:0;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -428,6 +429,9 @@
     <button class="panel-close" id="panelClose">✕</button>
   </div>
   <div class="video-wrap" id="videoWrap"></div>
+  <div class="video-footer" id="videoFooter">
+    <a id="openTabBtn" href="#" target="_blank" rel="noopener noreferrer">새 탭에서 열기 ↗</a>
+  </div>
   <div class="panel-body">
     <div class="loc" id="panelLoc">-</div>
     <div id="panelDesc">-</div>
@@ -474,7 +478,7 @@
     { name: "동백섬",              lat: 35.1547, lng: 129.1518, videoId: "jfKfPfyJRdk", desc: "동백섬 산책로 예시 지점" },
     { name: "오사카성", lat: 34.687445, lng: 135.52578, externalUrl: "https://www.youtube.com/@tvosakanews/live", desc: "오사카성" },
     { name: "광안리 라이브", lat: 35.1530, lng: 129.1180,
-      externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=%EA%B4%91%EC%95%88%EB%A6%AC&embed=1",
+      externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=%EA%B4%91%EC%95%88%EB%A6%AC",
       desc: "광안리 실시간 (리다이렉트 embed)" },
   ];
 
@@ -544,16 +548,30 @@
     document.getElementById('videoWrap').innerHTML = '';
   }
 
+  function stripEmbed(u){
+    try{
+      const url = new URL(u);
+      url.searchParams.delete('embed');
+      return url.toString();
+    }catch(_){
+      return u.replace(/([?&])embed=1(&|$)/, (_, p, e) => e ? p : '').replace(/[?&]$/, '');
+    }
+  }
+
   function openCam(cam, marker){
     if(activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = marker;
     marker.getElement()?.classList.add('active');
     stopVideo();
+
     document.getElementById('panelTitle').textContent = cam.name;
     document.getElementById('panelLoc').textContent = cam.name;
     document.getElementById('panelDesc').textContent = cam.desc;
+
     const videoWrap = document.getElementById('videoWrap');
     const panelSrc = document.getElementById('panelSrc');
+    const videoFooter = document.getElementById('videoFooter');
+    const openTabBtn = document.getElementById('openTabBtn');
 
     if(cam.videoId){
       panelSrc.textContent = `source: youtube.com/watch?v=${cam.videoId}`;
@@ -561,30 +579,29 @@
         `<iframe src="https://www.youtube.com/embed/${cam.videoId}?autoplay=1&mute=1"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen></iframe>`;
+      openTabBtn.href = `https://www.youtube.com/watch?v=${cam.videoId}`;
+      videoFooter.style.display = 'flex';
     } else if(cam.externalUrl){
-      // embed=1 이 없으면 자동으로 붙여서 패널 재생 시도
-      let url = cam.externalUrl;
-      if(url.includes('live-redirect') && !/[?&]embed=/.test(url)){
-        url += (url.includes('?') ? '&' : '?') + 'embed=1';
+      let embedUrl = cam.externalUrl;
+      if(embedUrl.includes('live-redirect') && !/[?&]embed=/.test(embedUrl)){
+        embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'embed=1';
       }
-      panelSrc.textContent = `source: ${url}`;
+      const tabUrl = stripEmbed(cam.externalUrl);
+
+      panelSrc.textContent = `source: ${tabUrl}`;
       videoWrap.innerHTML = `
         <iframe id="extFrame"
-          src="${url}"
+          src="${embedUrl}"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen
           style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#000"></iframe>
-        <div class="external-cta" id="extCta" style="display:none">
-          <div class="external-cta-icon">▶</div>
-          <div class="external-cta-text">패널에서 바로 재생이 안 될 수 있어요</div>
-          <a class="external-cta-btn" href="${cam.externalUrl.replace(/&embed=1/,'').replace(/\?embed=1&?/,'?').replace(/\?$/,'')}" target="_blank" rel="noopener noreferrer">새 탭에서 라이브 보기 ↗</a>
-        </div>
       `;
-      setTimeout(() => {
-        const cta = document.getElementById('extCta');
-        if(cta) cta.style.display = 'flex';
-      }, 4000);
+      openTabBtn.href = tabUrl;
+      videoFooter.style.display = 'flex';
+    } else {
+      videoFooter.style.display = 'none';
     }
+
     panel.classList.add('open');
     hint.classList.add('hidden');
   }
@@ -592,6 +609,7 @@
   function closeCam(){
     panel.classList.remove('open');
     stopVideo();
+    document.getElementById('videoFooter').style.display = 'none';
     if(activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = null;
   }
@@ -601,6 +619,12 @@
   function addCamMarker(cam){
     const icon = L.divIcon({ className: 'cam-marker', iconSize: [20,20] });
     const marker = L.marker([cam.lat, cam.lng], { icon }).addTo(map);
+    marker.bindTooltip(cam.name, {
+      direction: 'top',
+      offset: [0, -12],
+      className: 'cam-tip',
+      opacity: 1,
+    });
     marker.on('click', () => openCam(cam, marker));
     camMarkers.set(cam, marker);
     return marker;
@@ -658,6 +682,12 @@
         if(!c.coordy || !c.coordx) return;
         const icon = L.divIcon({ className: 'cctv-marker', iconSize: [12,12] });
         const marker = L.marker([c.coordy, c.coordx], { icon });
+        marker.bindTooltip(c.cctvname || 'CCTV', {
+          direction: 'top',
+          offset: [0, -8],
+          className: 'cam-tip',
+          opacity: 1,
+        });
         marker.on('click', () => openCctv(c, marker));
         cctvLayer.addLayer(marker);
       });
@@ -674,6 +704,7 @@
     activeMarker = marker;
     marker.getElement()?.classList.add('active');
     stopVideo();
+    document.getElementById('videoFooter').style.display = 'none';
     document.getElementById('panelTitle').textContent = c.cctvname || 'CCTV';
     document.getElementById('panelLoc').textContent = c.cctvname || '-';
     document.getElementById('panelDesc').textContent =
