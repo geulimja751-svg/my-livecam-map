@@ -35,7 +35,6 @@
   .dark-tiles{
     filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
   }
-  /* top bar */
   .topbar{
     position:absolute; top:0; left:0; right:0; z-index:1000;
     display:flex; align-items:center; gap:10px;
@@ -70,7 +69,6 @@
     animation: blink 1.6s ease-in-out infinite;
   }
   @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.25;} }
-  /* custom marker */
   .cam-marker{
     width:20px; height:20px; border-radius:50%;
     background:var(--accent);
@@ -84,7 +82,6 @@
     background:#ffb020;
     box-shadow:0 0 0 5px rgba(255,176,32,0.5), 0 0 18px rgba(255,176,32,0.6);
   }
-  /* ITS CCTV 마커 — 일반 라이브캠과 색을 다르게 구분한다 */
   .cctv-marker{
     width:12px; height:12px; border-radius:50%;
     background:var(--cctv-color);
@@ -108,7 +105,6 @@
     width:100%; height:100%; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
   }
-  /* bottom sheet / side panel */
   .panel{
     position:absolute; z-index:1100;
     background:var(--panel);
@@ -169,7 +165,8 @@
     position:absolute; inset:0;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:10px; padding:20px; text-align:center;
-    background:linear-gradient(180deg,#0d1420,#05070a);
+    background:linear-gradient(180deg,rgba(13,20,32,0.92),rgba(5,7,10,0.95));
+    z-index:2;
   }
   .external-cta-icon{
     width:44px; height:44px; border-radius:50%;
@@ -226,7 +223,6 @@
     font-size:9px !important;
   }
   .leaflet-control-attribution a{ color:var(--accent) !important; }
-  /* map style switcher */
   .style-switch{
     position:absolute; left:16px; bottom:20px; z-index:900;
     display:flex; gap:2px;
@@ -245,7 +241,6 @@
   .style-switch button.active{
     background:var(--accent); color:#0a0e14;
   }
-  /* top bar buttons (add / cctv / list) */
   .add-btn{
     pointer-events:auto;
     display:flex; align-items:center; gap:6px;
@@ -274,7 +269,6 @@
     background:#ff8a1e; border:2px solid #0a0e14;
     box-shadow:0 0 0 5px rgba(255,138,30,0.45), 0 0 16px rgba(255,138,30,0.6);
   }
-  /* add-cam modal */
   .modal-overlay{
     position:absolute; inset:0; z-index:1300;
     background:rgba(5,7,10,0.55);
@@ -334,7 +328,6 @@
   }
   .btn-copy:hover{ background:rgba(79,179,255,0.1); }
   .btn-copy.copied{ background:var(--accent); color:#0a0e14; }
-  /* ── 카메라 목록/검색 패널 ── */
   .list-panel{
     position:absolute; z-index:1150;
     background:var(--panel); border:1px solid var(--line);
@@ -398,7 +391,6 @@
   <button data-style="clean">클린</button>
   <button data-style="satellite">위성</button>
 </div>
-<!-- 카메라 목록/검색 패널 -->
 <div class="list-panel" id="listPanel">
   <div class="list-head">
     <input type="text" id="listSearch" placeholder="카메라 이름 검색">
@@ -450,8 +442,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
 <script>
-  // ── 기본 예시 데이터: 실제로는 이 배열을 원하는 만큼 늘리면 됩니다.
-  // videoId는 유튜브 라이브 스트림의 watch?v= 뒤에 오는 값입니다.
   const cams = [
     { name: "부산항대교 전망",     lat: 35.1046, lng: 129.0768, videoId: "jfKfPfyJRdk", desc: "부산항대교 인근 상시 라이브 스트림 예시" },
     { name: "광안대교 야경",       lat: 35.1533, lng: 129.1186, videoId: "jfKfPfyJRdk", desc: "광안대교 방면 라이브캠 예시 지점" },
@@ -460,6 +450,7 @@
     { name: "기장 오시리아",       lat: 35.1963, lng: 129.2287, videoId: "jfKfPfyJRdk", desc: "기장군 해안 도로변 예시" },
     { name: "동백섬",              lat: 35.1547, lng: 129.1518, videoId: "jfKfPfyJRdk", desc: "동백섬 산책로 예시 지점" },
     { name: "오사카성", lat: 34.687445, lng: 135.52578, externalUrl: "https://www.youtube.com/@tvosakanews/live", desc: "오사카성" },
+    { name: "광안리 라이브", lat: 35.1530, lng: 129.1180, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=%EA%B4%91%EC%95%88%EB%A6%AC", desc: "광안리 실시간 (리다이렉트 테스트)" },
   ];
   const map = L.map('map', {
     zoomControl: true,
@@ -467,7 +458,6 @@
     minZoom: 3,
     maxZoom: 20,
   }).setView([35.16, 129.15], 12);
-  // ── 지도 스타일 정의 ──────────────────────────────
   const styles = {
     dark: {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -516,8 +506,8 @@
   const panel = document.getElementById('panel');
   const hint = document.getElementById('hint');
   let activeMarker = null;
-  let activeHls = null;               // 지금 재생 중인 HLS 인스턴스(CCTV용) — 카메라를 바꿀 때 반드시 정리한다
-  const camMarkers = new Map();       // cam(object) -> leaflet marker, 목록 패널에서 클릭했을 때 찾기 위함
+  let activeHls = null;
+  const camMarkers = new Map();
   function stopVideo(){
     if(activeHls){ try{ activeHls.destroy(); }catch(e){} activeHls = null; }
     document.getElementById('videoWrap').innerHTML = '';
@@ -540,13 +530,24 @@
           allowfullscreen></iframe>`;
     } else if(cam.externalUrl){
       panelSrc.textContent = `source: ${cam.externalUrl}`;
+      // 시도: iframe으로 넣고, 안 되면 CTA 표시
       videoWrap.innerHTML = `
-        <div class="external-cta">
+        <iframe id="extFrame"
+          src="${cam.externalUrl}"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#000"></iframe>
+        <div class="external-cta" id="extCta" style="display:none">
           <div class="external-cta-icon">▶</div>
-          <div class="external-cta-text">이 카메라는 새 탭에서 열립니다</div>
-          <a class="external-cta-btn" href="${cam.externalUrl}" target="_blank" rel="noopener noreferrer">라이브 보러 가기 ↗</a>
-        </div>`;
-      window.open(cam.externalUrl, '_blank', 'noopener,noreferrer');
+          <div class="external-cta-text">패널에서 바로 재생이 안 될 수 있어요</div>
+          <a class="external-cta-btn" href="${cam.externalUrl}" target="_blank" rel="noopener noreferrer">새 탭에서 라이브 보기 ↗</a>
+        </div>
+      `;
+      // 3초 뒤 CTA를 보여줌 (유튜브가 막으면 검은 화면이 나오므로)
+      setTimeout(() => {
+        const cta = document.getElementById('extCta');
+        if(cta) cta.style.display = 'flex';
+      }, 3000);
     }
     panel.classList.add('open');
     hint.classList.add('hidden');
@@ -571,23 +572,10 @@
     if(listPanel.classList.contains('open')) renderList(listSearch.value);
   }
   cams.forEach(addCamMarker);
-  // ── updateCount()는 모든 변수 선언이 끝난 뒤에 호출합니다 (아래 맨 끝)
 
-  // ══════════════════════════════════════════════════════════════
-  // ── ITS 국가교통정보센터 공공 CCTV 연동 ──────────────────────────
-  //
-  // 1) https://www.its.go.kr → 오픈API → CCTV 정보 활용신청으로
-  //    API 키를 발급받아 아래 ITS_API_KEY 에 넣으세요.
-  // 2) 브라우저에서 fetch 가 CORS 로 막히면(개발자도구 콘솔에 에러가 뜨면)
-  //    Cloudflare Worker 같은 가벼운 프록시를 하나 두고 ITS_ENDPOINT 를
-  //    그 프록시 주소로 바꿔주면 됩니다.
-  // 3) type 은 ex(고속도로) / its(국도) / all(전체) 중 하나입니다.
-  //    전국을 한 번에 부르면 무거우니, 지금 지도에 보이는 범위(bounds)만
-  //    불러오고, 너무 축소된 상태(zoom 11 미만)에서는 부르지 않습니다.
-  // ══════════════════════════════════════════════════════════════
-  const ITS_API_KEY = 'YOUR_ITS_API_KEY';  // ← 여기에 발급받은 키를 넣으세요
+  const ITS_API_KEY = 'YOUR_ITS_API_KEY';
   const ITS_ENDPOINT = 'https://openapi.its.go.kr:9443/cctvInfo';
-  const ITS_MIN_ZOOM = 11;                 // 이보다 축소되면 CCTV를 불러오지 않는다
+  const ITS_MIN_ZOOM = 11;
   let cctvOn = false;
   let cctvLoading = false;
   const cctvLayer = L.markerClusterGroup({
@@ -603,7 +591,7 @@
     const p = new URLSearchParams({
       apiKey: ITS_API_KEY,
       type: 'all',
-      cctvType: '1',        // 1 = 실시간 스트리밍(HLS) 제공 카메라만
+      cctvType: '1',
       minX: bounds.getWest(),
       maxX: bounds.getEast(),
       minY: bounds.getSouth(),
@@ -635,7 +623,6 @@
       });
       updateCount();
     }catch(e){
-      // 키를 아직 안 넣었거나 CORS 가 막혔을 때 여기로 온다.
       console.warn('ITS CCTV 로드 실패 (API 키 미설정이거나 CORS 문제일 수 있음):', e.message);
     }finally{
       cctvLoading = false;
@@ -672,7 +659,7 @@
         video.addEventListener('loadedmetadata', () => state?.remove());
         video.play().catch(()=>{});
       }else{
-        videoWrap.innerHTML = '<div class="video-state">이 브라우저는 재생할 수 없습니다</div>';
+        videoWrap.innerHTML = '<div class="video-state">이 브라우저에서는 재생할 수 없습니다</div>';
       }
     }
     panel.classList.add('open');
@@ -692,7 +679,6 @@
   }
   document.getElementById('cctvBtn').addEventListener('click', toggleCctv);
   map.on('moveend', () => { if(cctvOn) loadCctvInView(); });
-  // ── 카메라 목록/검색 패널 ──────────────────────────
   const listPanel = document.getElementById('listPanel');
   const listItems = document.getElementById('listItems');
   const listSearch = document.getElementById('listSearch');
@@ -712,7 +698,6 @@
       listItems.appendChild(li);
       count++;
     });
-    // CCTV는 지금 지도에 로드된 것만 목록에 보여준다(전국 CCTV는 수천 개라 전부 담지 않는다)
     if(cctvOn){
       cctvLayer.eachLayer(marker => {
         const ll = marker.getLatLng();
@@ -740,7 +725,6 @@
   });
   document.getElementById('listClose').addEventListener('click', () => listPanel.classList.remove('open'));
   listSearch.addEventListener('input', () => renderList(listSearch.value));
-  // ── 카메라 추가 기능 ──────────────────────────────
   const addBtn = document.getElementById('addBtn');
   const pickHint = document.getElementById('pickHint');
   const mapEl = document.getElementById('map');
@@ -842,7 +826,6 @@
     }
   });
 
-  // 모든 변수(cctvOn, cctvLayer, listPanel 등)가 선언된 뒤에 호출
   updateCount();
 </script>
 </body>
