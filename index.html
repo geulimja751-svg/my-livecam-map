@@ -113,10 +113,13 @@
     display:flex; flex-direction:column;
     transform: translateY(110%);
     transition: transform 0.32s cubic-bezier(.2,.9,.25,1);
+    overflow-x:hidden;
   }
   @media (min-width: 720px){
     .panel{
       top:16px; right:16px; bottom:16px; width:380px;
+      min-width:280px;
+      max-width:min(720px, 90vw);
       border-radius:14px; transform: translateX(120%);
     }
     .panel.open{ transform: translateX(0); }
@@ -127,6 +130,22 @@
       border-radius:16px 16px 0 0;
     }
     .panel.open{ transform: translateY(0); }
+    .panel-resize{ display:none; }
+  }
+  .panel-resize{
+    position:absolute; left:0; top:0; bottom:0; width:8px;
+    cursor:ew-resize; z-index:20;
+  }
+  .panel-resize::after{
+    content:'';
+    position:absolute; left:2px; top:50%; transform:translateY(-50%);
+    width:3px; height:40px; border-radius:2px;
+    background:var(--line); opacity:0.6;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .panel-resize:hover::after,
+  .panel.resizing .panel-resize::after{
+    background:var(--accent); opacity:1;
   }
   .panel-head{
     display:flex; align-items:center; gap:10px;
@@ -156,10 +175,10 @@
   .panel-close:hover{ background:var(--line); color:var(--text); }
   .video-wrap{
     position:relative; width:100%; aspect-ratio:16/9;
-    background:#000; flex-shrink:0;
+    background:#000; flex-shrink:0; overflow:hidden;
   }
   .video-wrap iframe, .video-wrap video{
-    position:absolute; inset:0; width:100%; height:100%; border:0;
+    position:absolute; inset:0; width:100%; height:100%; border:0; max-width:100%;
   }
   .external-cta{
     position:absolute; inset:0;
@@ -195,11 +214,14 @@
   }
   @keyframes sp{ to{ transform:rotate(360deg); } }
   .panel-body{
-    padding:14px 16px; overflow-y:auto;
+    padding:14px 16px; overflow-y:auto; overflow-x:hidden;
     font-size:12.5px; color:var(--text-dim); line-height:1.6;
   }
   .panel-body .loc{ color:var(--text); font-weight:600; font-size:13px; margin-bottom:4px; }
-  .panel-body .src{ font-family:var(--mono); font-size:10.5px; color:#4d5a6a; margin-top:8px; }
+  .panel-body .src{
+    font-family:var(--mono); font-size:10.5px; color:#4d5a6a; margin-top:8px;
+    word-break:break-all; overflow-wrap:anywhere;
+  }
   .hint{
     position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
     z-index:900; pointer-events:none;
@@ -399,6 +421,7 @@
   <ul class="list-items" id="listItems"></ul>
 </div>
 <div class="panel" id="panel">
+  <div class="panel-resize" id="panelResize"></div>
   <div class="panel-head">
     <span class="live-badge"><span class="dot"></span>LIVE</span>
     <div class="panel-title" id="panelTitle">-</div>
@@ -449,15 +472,19 @@
     { name: "송정 해변",           lat: 35.1785, lng: 129.2005, videoId: "jfKfPfyJRdk", desc: "송정 해수욕장 라이브 예시" },
     { name: "기장 오시리아",       lat: 35.1963, lng: 129.2287, videoId: "jfKfPfyJRdk", desc: "기장군 해안 도로변 예시" },
     { name: "동백섬",              lat: 35.1547, lng: 129.1518, videoId: "jfKfPfyJRdk", desc: "동백섬 산책로 예시 지점" },
-    { name: "오사카성", lat: 34.687445, lng: 135.52578, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KabukichoLiveCamera&keyword=%E6%AD%8C%E8%88%9E%E4%BC%8E%E7%94%BA&embed=1", desc: "오사카성" },
-    { name: "광안리 라이브", lat: 35.1530, lng: 129.1180, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=%EA%B4%91%EC%95%88%EB%A6%AC", desc: "광안리 실시간 (리다이렉트 테스트)" },
+    { name: "오사카성", lat: 34.687445, lng: 135.52578, externalUrl: "https://www.youtube.com/@tvosakanews/live", desc: "오사카성" },
+    { name: "광안리 라이브", lat: 35.1530, lng: 129.1180,
+      externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=%EA%B4%91%EC%95%88%EB%A6%AC&embed=1",
+      desc: "광안리 실시간 (리다이렉트 embed)" },
   ];
+
   const map = L.map('map', {
     zoomControl: true,
     attributionControl: true,
     minZoom: 3,
     maxZoom: 20,
   }).setView([35.16, 129.15], 12);
+
   const styles = {
     dark: {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -474,6 +501,7 @@
   };
   let tileLayer = L.tileLayer(styles.dark.url, styles.dark.options).addTo(map);
   let currentStyle = 'dark';
+
   function switchStyle(name){
     if(name === currentStyle) return;
     map.removeLayer(tileLayer);
@@ -488,6 +516,7 @@
     const btn = e.target.closest('button');
     if(btn) switchStyle(btn.dataset.style);
   });
+
   function checkTileLoad(){
     document.getElementById('tileWarn')?.remove();
     let loaded = false;
@@ -503,15 +532,18 @@
     }, 3500);
   }
   checkTileLoad();
+
   const panel = document.getElementById('panel');
   const hint = document.getElementById('hint');
   let activeMarker = null;
   let activeHls = null;
   const camMarkers = new Map();
+
   function stopVideo(){
     if(activeHls){ try{ activeHls.destroy(); }catch(e){} activeHls = null; }
     document.getElementById('videoWrap').innerHTML = '';
   }
+
   function openCam(cam, marker){
     if(activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = marker;
@@ -522,6 +554,7 @@
     document.getElementById('panelDesc').textContent = cam.desc;
     const videoWrap = document.getElementById('videoWrap');
     const panelSrc = document.getElementById('panelSrc');
+
     if(cam.videoId){
       panelSrc.textContent = `source: youtube.com/watch?v=${cam.videoId}`;
       videoWrap.innerHTML =
@@ -529,29 +562,33 @@
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen></iframe>`;
     } else if(cam.externalUrl){
-      panelSrc.textContent = `source: ${cam.externalUrl}`;
-      // 시도: iframe으로 넣고, 안 되면 CTA 표시
+      // embed=1 이 없으면 자동으로 붙여서 패널 재생 시도
+      let url = cam.externalUrl;
+      if(url.includes('live-redirect') && !/[?&]embed=/.test(url)){
+        url += (url.includes('?') ? '&' : '?') + 'embed=1';
+      }
+      panelSrc.textContent = `source: ${url}`;
       videoWrap.innerHTML = `
         <iframe id="extFrame"
-          src="${cam.externalUrl}"
+          src="${url}"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen
           style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#000"></iframe>
         <div class="external-cta" id="extCta" style="display:none">
           <div class="external-cta-icon">▶</div>
           <div class="external-cta-text">패널에서 바로 재생이 안 될 수 있어요</div>
-          <a class="external-cta-btn" href="${cam.externalUrl}" target="_blank" rel="noopener noreferrer">새 탭에서 라이브 보기 ↗</a>
+          <a class="external-cta-btn" href="${cam.externalUrl.replace(/&embed=1/,'').replace(/\?embed=1&?/,'?').replace(/\?$/,'')}" target="_blank" rel="noopener noreferrer">새 탭에서 라이브 보기 ↗</a>
         </div>
       `;
-      // 3초 뒤 CTA를 보여줌 (유튜브가 막으면 검은 화면이 나오므로)
       setTimeout(() => {
         const cta = document.getElementById('extCta');
         if(cta) cta.style.display = 'flex';
-      }, 3000);
+      }, 4000);
     }
     panel.classList.add('open');
     hint.classList.add('hidden');
   }
+
   function closeCam(){
     panel.classList.remove('open');
     stopVideo();
@@ -559,6 +596,7 @@
     activeMarker = null;
   }
   document.getElementById('panelClose').addEventListener('click', closeCam);
+
   const camCountEl = document.getElementById('camCount');
   function addCamMarker(cam){
     const icon = L.divIcon({ className: 'cam-marker', iconSize: [20,20] });
@@ -573,7 +611,7 @@
   }
   cams.forEach(addCamMarker);
 
-  const ITS_API_KEY = 'f9565bfc1f2b4a68a26c48120f5c27b3	';
+  const ITS_API_KEY = 'f9565bfc1f2b4a68a26c48120f5c27b3';
   const ITS_ENDPOINT = 'https://openapi.its.go.kr:9443/cctvInfo';
   const ITS_MIN_ZOOM = 11;
   let cctvOn = false;
@@ -587,6 +625,7 @@
       iconSize: [36, 36],
     }),
   });
+
   function itsUrl(bounds){
     const p = new URLSearchParams({
       apiKey: ITS_API_KEY,
@@ -600,6 +639,7 @@
     });
     return `${ITS_ENDPOINT}?${p.toString()}`;
   }
+
   async function loadCctvInView(){
     if(!cctvOn || cctvLoading) return;
     if(map.getZoom() < ITS_MIN_ZOOM){
@@ -628,6 +668,7 @@
       cctvLoading = false;
     }
   }
+
   function openCctv(c, marker){
     if(activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = marker;
@@ -665,6 +706,7 @@
     panel.classList.add('open');
     hint.classList.add('hidden');
   }
+
   function toggleCctv(){
     cctvOn = !cctvOn;
     document.getElementById('cctvBtn').classList.toggle('active', cctvOn);
@@ -679,9 +721,11 @@
   }
   document.getElementById('cctvBtn').addEventListener('click', toggleCctv);
   map.on('moveend', () => { if(cctvOn) loadCctvInView(); });
+
   const listPanel = document.getElementById('listPanel');
   const listItems = document.getElementById('listItems');
   const listSearch = document.getElementById('listSearch');
+
   function renderList(filterText){
     const q = (filterText || '').trim().toLowerCase();
     listItems.innerHTML = '';
@@ -725,108 +769,6 @@
   });
   document.getElementById('listClose').addEventListener('click', () => listPanel.classList.remove('open'));
   listSearch.addEventListener('input', () => renderList(listSearch.value));
-  const addBtn = document.getElementById('addBtn');
-  const pickHint = document.getElementById('pickHint');
-  const mapEl = document.getElementById('map');
-  const modalOverlay = document.getElementById('modalOverlay');
-  const modalCoord = document.getElementById('modalCoord');
-  const codeResult = document.getElementById('codeResult');
-  const codeText = document.getElementById('codeText');
-  const btnCopy = document.getElementById('btnCopy');
-  let pickMode = false;
-  let pickedLatLng = null;
-  let tempMarker = null;
-  function togglePickMode(force){
-    pickMode = force !== undefined ? force : !pickMode;
-    addBtn.classList.toggle('active', pickMode);
-    pickHint.classList.toggle('show', pickMode);
-    mapEl.classList.toggle('picking', pickMode);
-  }
-  addBtn.addEventListener('click', () => togglePickMode());
-  map.on('click', (e) => {
-    if(!pickMode) return;
-    pickedLatLng = e.latlng;
-    if(tempMarker) map.removeLayer(tempMarker);
-    tempMarker = L.marker(e.latlng, { icon: L.divIcon({ className:'temp-marker', iconSize:[22,22] }) }).addTo(map);
-    modalCoord.textContent = `위도 ${e.latlng.lat.toFixed(6)}, 경도 ${e.latlng.lng.toFixed(6)}`;
-    document.getElementById('fName').value = '';
-    document.getElementById('fUrl').value = '';
-    document.getElementById('fDesc').value = '';
-    document.getElementById('fUrlErr').classList.remove('show');
-    codeResult.classList.remove('show');
-    modalOverlay.classList.add('show');
-    togglePickMode(false);
-  });
-  function extractYoutubeId(input){
-    input = input.trim();
-    if(/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-      /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-      /(?:youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,
-      /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-      /[?&]v=([a-zA-Z0-9_-]{11})/,
-    ];
-    for(const re of patterns){
-      const m = input.match(re);
-      if(m) return m[1];
-    }
-    return null;
-  }
-  document.getElementById('modalCancel').addEventListener('click', closeModal);
-  function closeModal(){
-    modalOverlay.classList.remove('show');
-    if(tempMarker){ map.removeLayer(tempMarker); tempMarker = null; }
-  }
-  document.getElementById('modalGenerate').addEventListener('click', () => {
-    const name = document.getElementById('fName').value.trim() || '이름 없는 카메라';
-    const urlRaw = document.getElementById('fUrl').value.trim();
-    const desc = document.getElementById('fDesc').value.trim() || '설명 없음';
-    const vid = extractYoutubeId(urlRaw);
-    const errEl = document.getElementById('fUrlErr');
-    let camData;
-    if(vid){
-      camData = {
-        name,
-        lat: Number(pickedLatLng.lat.toFixed(6)),
-        lng: Number(pickedLatLng.lng.toFixed(6)),
-        videoId: vid,
-        desc
-      };
-    } else if(/^https?:\/\//i.test(urlRaw)){
-      camData = {
-        name,
-        lat: Number(pickedLatLng.lat.toFixed(6)),
-        lng: Number(pickedLatLng.lng.toFixed(6)),
-        externalUrl: urlRaw,
-        desc
-      };
-    } else {
-      errEl.classList.add('show');
-      return;
-    }
-    errEl.classList.remove('show');
-    const snippet = camData.videoId
-      ? `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, videoId: "${camData.videoId}", desc: "${desc.replace(/"/g,'\\"')}" },`
-      : `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, externalUrl: "${camData.externalUrl.replace(/"/g,'\\"')}", desc: "${desc.replace(/"/g,'\\"')}" },`;
-    codeText.textContent = snippet;
-    codeResult.classList.add('show');
-    addCamMarker(camData);
-    cams.push(camData);
-    updateCount();
-  });
-  btnCopy.addEventListener('click', async () => {
-    try{
-      await navigator.clipboard.writeText(codeText.textContent);
-      btnCopy.textContent = '복사됨 ✓';
-      btnCopy.classList.add('copied');
-      setTimeout(() => { btnCopy.textContent = '코드 복사'; btnCopy.classList.remove('copied'); }, 1600);
-    }catch(err){
-      btnCopy.textContent = '복사 실패 — 직접 선택해 복사하세요';
-    }
-  });
 
-  updateCount();
-</script>
-</body>
-</html>
+  const addBtn = document.getElementById('addBtn');
+  const pickHint = document.getElementBy
