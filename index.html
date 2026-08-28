@@ -771,4 +771,163 @@
   listSearch.addEventListener('input', () => renderList(listSearch.value));
 
   const addBtn = document.getElementById('addBtn');
-  const pickHint = document.getElementBy
+  const pickHint = document.getElementById('pickHint');
+  const mapEl = document.getElementById('map');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalCoord = document.getElementById('modalCoord');
+  const codeResult = document.getElementById('codeResult');
+  const codeText = document.getElementById('codeText');
+  const btnCopy = document.getElementById('btnCopy');
+  let pickMode = false;
+  let pickedLatLng = null;
+  let tempMarker = null;
+
+  function togglePickMode(force){
+    pickMode = force !== undefined ? force : !pickMode;
+    addBtn.classList.toggle('active', pickMode);
+    pickHint.classList.toggle('show', pickMode);
+    mapEl.classList.toggle('picking', pickMode);
+  }
+  addBtn.addEventListener('click', () => togglePickMode());
+
+  map.on('click', (e) => {
+    if(!pickMode) return;
+    pickedLatLng = e.latlng;
+    if(tempMarker) map.removeLayer(tempMarker);
+    tempMarker = L.marker(e.latlng, { icon: L.divIcon({ className:'temp-marker', iconSize:[22,22] }) }).addTo(map);
+    modalCoord.textContent = `위도 ${e.latlng.lat.toFixed(6)}, 경도 ${e.latlng.lng.toFixed(6)}`;
+    document.getElementById('fName').value = '';
+    document.getElementById('fUrl').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('fUrlErr').classList.remove('show');
+    codeResult.classList.remove('show');
+    modalOverlay.classList.add('show');
+    togglePickMode(false);
+  });
+
+  function extractYoutubeId(input){
+    input = input.trim();
+    if(/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+      /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+      /[?&]v=([a-zA-Z0-9_-]{11})/,
+    ];
+    for(const re of patterns){
+      const m = input.match(re);
+      if(m) return m[1];
+    }
+    return null;
+  }
+
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
+  function closeModal(){
+    modalOverlay.classList.remove('show');
+    if(tempMarker){ map.removeLayer(tempMarker); tempMarker = null; }
+  }
+
+  document.getElementById('modalGenerate').addEventListener('click', () => {
+    const name = document.getElementById('fName').value.trim() || '이름 없는 카메라';
+    const urlRaw = document.getElementById('fUrl').value.trim();
+    const desc = document.getElementById('fDesc').value.trim() || '설명 없음';
+    const vid = extractYoutubeId(urlRaw);
+    const errEl = document.getElementById('fUrlErr');
+    let camData;
+    if(vid){
+      camData = {
+        name,
+        lat: Number(pickedLatLng.lat.toFixed(6)),
+        lng: Number(pickedLatLng.lng.toFixed(6)),
+        videoId: vid,
+        desc
+      };
+    } else if(/^https?:\/\//i.test(urlRaw)){
+      camData = {
+        name,
+        lat: Number(pickedLatLng.lat.toFixed(6)),
+        lng: Number(pickedLatLng.lng.toFixed(6)),
+        externalUrl: urlRaw,
+        desc
+      };
+    } else {
+      errEl.classList.add('show');
+      return;
+    }
+    errEl.classList.remove('show');
+    const snippet = camData.videoId
+      ? `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, videoId: "${camData.videoId}", desc: "${desc.replace(/"/g,'\\"')}" },`
+      : `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, externalUrl: "${camData.externalUrl.replace(/"/g,'\\"')}", desc: "${desc.replace(/"/g,'\\"')}" },`;
+    codeText.textContent = snippet;
+    codeResult.classList.add('show');
+    addCamMarker(camData);
+    cams.push(camData);
+    updateCount();
+  });
+
+  btnCopy.addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(codeText.textContent);
+      btnCopy.textContent = '복사됨 ✓';
+      btnCopy.classList.add('copied');
+      setTimeout(() => { btnCopy.textContent = '코드 복사'; btnCopy.classList.remove('copied'); }, 1600);
+    }catch(err){
+      btnCopy.textContent = '복사 실패 — 직접 선택해 복사하세요';
+    }
+  });
+
+  // 패널 좌우 리사이즈
+  (function initPanelResize() {
+    const panelEl = document.getElementById('panel');
+    const handle = document.getElementById('panelResize');
+    if (!panelEl || !handle) return;
+
+    const STORAGE_KEY = 'livecam-panel-width';
+    const MIN_W = 280;
+    const MAX_W = () => Math.min(720, window.innerWidth * 0.9);
+
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const w = Math.min(MAX_W(), Math.max(MIN_W, parseInt(saved, 10)));
+      panelEl.style.width = w + 'px';
+    }
+
+    let startX = 0;
+    let startW = 0;
+
+    function onMove(e) {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const delta = startX - clientX;
+      const next = Math.min(MAX_W(), Math.max(MIN_W, startW + delta));
+      panelEl.style.width = next + 'px';
+    }
+
+    function onUp() {
+      panelEl.classList.remove('resizing');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+      localStorage.setItem(STORAGE_KEY, parseInt(panelEl.style.width, 10) || 380);
+    }
+
+    function onDown(e) {
+      e.preventDefault();
+      startX = e.touches ? e.touches[0].clientX : e.clientX;
+      startW = panelEl.getBoundingClientRect().width;
+      panelEl.classList.add('resizing');
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend', onUp);
+    }
+
+    handle.addEventListener('mousedown', onDown);
+    handle.addEventListener('touchstart', onDown, { passive: false });
+  })();
+
+  updateCount();
+</script>
+</body>
+</html>
