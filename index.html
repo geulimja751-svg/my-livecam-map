@@ -32,6 +32,9 @@
     background:var(--bg);
   }
   .leaflet-container{ background:var(--bg); }
+  .dark-tiles{
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
+  }
 
   /* top bar */
   .topbar{
@@ -490,9 +493,6 @@
     { name: "오사카성", lat: 34.687445, lng: 135.52578, externalUrl: "https://www.youtube.com/@tvosakanews/live", desc: "오사카성" },
   ];
 
-  // https://carto.com/basemaps/apikey 에서 발급받은 키
-  const CARTO_API_KEY = 'cb1_2eip_1_3111fc0e6f963cf5df4f6fd1';
-
   const map = L.map('map', {
     zoomControl: true,
     attributionControl: true,
@@ -503,14 +503,11 @@
   // ── 지도 스타일 정의 ──────────────────────────────
   const styles = {
     dark: {
-      // CARTO 다크매터 타일. 2026년부터 익명 접근이 막혀 API 키가 필요해졌다.
-      // https://carto.com/basemaps/apikey 에서 무료로 발급받아 아래 CARTO_API_KEY 에 넣는다.
-      // (월 500만 타일 요청까지 무료 — 개인/소규모 프로젝트에는 충분하다)
-      url: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`,
-      options: { attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      options: { attribution: '&copy; OpenStreetMap contributors', subdomains: 'abc', maxZoom: 19, className: 'dark-tiles' }
     },
     clean: {
-      url: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`,
+      url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
       options: { attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }
     },
     satellite: {
@@ -686,7 +683,6 @@
         if(!c.coordy || !c.coordx) return;
         const icon = L.divIcon({ className: 'cctv-marker', iconSize: [12,12] });
         const marker = L.marker([c.coordy, c.coordx], { icon });
-        marker._cctvName = c.cctvname || 'CCTV';   // 목록/검색 패널이 이 이름을 읽는다
         marker.on('click', () => openCctv(c, marker));
         cctvLayer.addLayer(marker);
       });
