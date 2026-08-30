@@ -468,9 +468,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
+<!-- MapTiler Leaflet 플러그인 (한글 라벨용) -->
+<script src="https://cdn.jsdelivr.net/npm/@maptiler/leaflet-maptilersdk@3.0.0/dist/leaflet-maptilersdk.umd.min.js"></script>
 <script>
+  // ★★★ MapTiler에서 만든 키를 여기에 붙여넣기 ★★★
+  const MAPTILER_KEY = 'YOUR_MAPTILER_API_KEY';
+
   const cams = [
-    // 부산
     { name: "부산항대교 전망",     lat: 35.1046, lng: 129.0768, videoId: "jfKfPfyJRdk", desc: "부산항대교 인근 상시 라이브 스트림 예시" },
     { name: "해운대 해수욕장",     lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", desc: "해운대 해변가 실시간 화면 예시" },
     { name: "송정 해수욕장", lat: 35.177636, lng: 129.196488, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ollahotel1585&keyword=%EC%86%A1%EC%A0%95", desc: "올라호텔에서 송정 해수욕장 바라보는 뷰" },
@@ -480,19 +484,13 @@
     { name: "광안대교 라이브캠", lat: 35.142713, lng: 129.117057, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@BusanLive&keyword=광안대교", desc: "설명 없음" },
     { name: "광안대교 중앙", lat: 35.147592, lng: 129.1302, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=상부", desc: "광안대교 상부 현수교 중앙" },
     { name: "부경대학교", lat: 35.13458, lng: 129.104934, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@PuKyongNationalUniversity&keyword=%EB%B6%80%EA%B2%BD%EB%8C%80%ED%95%99%EA%B5%90", desc: "부경대학교 실시간" },
-
-    // 대전
     { name: "대전엑스포과학공원 한빛광장", lat: 36.375896, lng: 127.388113, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=대전", desc: "대전엑스포과학공원 한빛광장" },
-
-    // 서울
     { name: "서울 동대문 DDP", lat: 37.566198, lng: 127.008337, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DDPLiveSeoul&keyword=LOFI", desc: "서울 동대문 디자인 플라자" },
     { name: "한강 잠실대교", lat: 37.5237, lng: 127.092043, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=잠실대교", desc: "한강 잠실대교" },
     { name: "잠실 롯데월드", lat: 37.508868, lng: 127.100004, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=롯데월드", desc: "잠실 롯데월드" },
     { name: "잠실 석촌호수", lat: 37.512603, lng: 127.106634, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=석촌호수", desc: "잠실 석촌호수" },
     { name: "반포대교", lat: 37.51514, lng: 126.99616, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DailySeoul&keyword=반포대교", desc: "반포대교 4k" },
     { name: "동호대교", lat: 37.536861, lng: 127.020525, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@seoulvibes_live&keyword=로파이", desc: "동호대교" },
-
-    // 일본
     { name: "오사카성", lat: 34.687413, lng: 135.525804, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tvosakanews&keyword=Castle", desc: "오사카성" },
     { name: "오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", desc: "카니도라쿠 도톤보리점 -> 에비스바시 다리" },
     { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", desc: "에비스바시 -> 난바 방향 상점가" },
@@ -507,6 +505,7 @@
 
   const styles = {
     dark: {
+      type: 'raster',
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       options: {
         attribution: '&copy; OpenStreetMap contributors',
@@ -517,17 +516,12 @@
       },
       mapMaxZoom: 18
     },
-    // 한글 라벨 (OSM name:ko 있는 지명 → 한글). 안 되면 CARTO로 교체
     clean: {
-      url: 'https://tile.tracestrack.com/ko/{z}/{x}/{y}.png',
-      options: {
-        attribution: '&copy; OpenStreetMap, &copy; <a href="https://www.tracestrack.com/">Tracestrack</a>',
-        maxZoom: 19,
-        maxNativeZoom: 19
-      },
+      type: 'maptiler', // 한글 라벨
       mapMaxZoom: 18
     },
     satellite: {
+      type: 'raster',
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       options: {
         attribution: 'Imagery &copy; Esri',
@@ -538,44 +532,49 @@
     }
   };
 
-  let tileLayer = L.tileLayer(styles.dark.url, styles.dark.options).addTo(map);
+  function createStyleLayer(name) {
+    const s = styles[name];
+    if (s.type === 'maptiler') {
+      if (!MAPTILER_KEY || MAPTILER_KEY === 'YOUR_MAPTILER_API_KEY') {
+        console.warn('MapTiler API 키를 설정해주세요');
+      }
+      // MapTiler 벡터 타일 + 한국어 지명
+      const opts = {
+        apiKey: MAPTILER_KEY,
+        language: 'ko'
+      };
+      // 스타일 ID (패키지 버전에 따라 MapStyle 객체가 없을 수 있음)
+      if (L.maptiler && L.maptiler.MapStyle && L.maptiler.MapStyle.STREETS) {
+        opts.style = L.maptiler.MapStyle.STREETS;
+      } else {
+        opts.style = 'streets-v2';
+      }
+      return L.maptiler.maptilerLayer(opts);
+    }
+    return L.tileLayer(s.url, s.options);
+  }
+
+  let tileLayer = createStyleLayer('dark').addTo(map);
   let currentStyle = 'dark';
   map.setMaxZoom(styles.dark.mapMaxZoom);
 
-  function switchStyle(name){
-    if(name === currentStyle) return;
+  function switchStyle(name) {
+    if (name === currentStyle) return;
     map.removeLayer(tileLayer);
-    tileLayer = L.tileLayer(styles[name].url, styles[name].options).addTo(map);
+    tileLayer = createStyleLayer(name).addTo(map);
     currentStyle = name;
     map.setMaxZoom(styles[name].mapMaxZoom);
-    if(map.getZoom() > styles[name].mapMaxZoom){
+    if (map.getZoom() > styles[name].mapMaxZoom) {
       map.setZoom(styles[name].mapMaxZoom);
     }
     document.querySelectorAll('#styleSwitch button').forEach(b =>
       b.classList.toggle('active', b.dataset.style === name)
     );
-    checkTileLoad();
   }
   document.getElementById('styleSwitch').addEventListener('click', e => {
     const btn = e.target.closest('button');
-    if(btn) switchStyle(btn.dataset.style);
+    if (btn) switchStyle(btn.dataset.style);
   });
-
-  function checkTileLoad(){
-    document.getElementById('tileWarn')?.remove();
-    let loaded = false;
-    tileLayer.once('load', () => { loaded = true; document.getElementById('tileWarn')?.remove(); });
-    setTimeout(() => {
-      if(!loaded){
-        const warn = document.createElement('div');
-        warn.id = 'tileWarn';
-        warn.style.cssText = 'position:absolute;top:70px;left:50%;transform:translateX(-50%);z-index:900;background:#10151d;border:1px solid #1e2733;color:#7d8a9a;font-size:11px;padding:8px 14px;border-radius:20px;max-width:80%;text-align:center;';
-        warn.textContent = '이 스타일은 미리보기 창에서 로드가 막힐 수 있어요 — 실제 배포 환경에서는 정상 표시됩니다';
-        document.body.appendChild(warn);
-      }
-    }, 3500);
-  }
-  checkTileLoad();
 
   const panel = document.getElementById('panel');
   const hint = document.getElementById('hint');
@@ -670,7 +669,6 @@
   }
   cams.forEach(addCamMarker);
 
-  // 등록 캠 전체가 첫 화면에 보이도록
   (function fitAllCams() {
     if (!cams.length) {
       map.setView([35.16, 129.15], 12);
@@ -962,7 +960,7 @@
     if (!panelEl || !handle) return;
     const STORAGE_KEY = 'livecam-panel-width';
     const MIN_W = 280;
-    const MAX_W = () => Math.min(1600, window.innerWidth * 0.9);
+    const MAX_W = () => Math.min(1600, window.innerWidth * 0.96);
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const w = Math.min(MAX_W(), Math.max(MIN_W, parseInt(saved, 10)));
