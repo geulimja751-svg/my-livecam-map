@@ -126,9 +126,9 @@
   }
   @media (min-width: 720px){
     .panel{
-      top:16px; right:16px; bottom:16px; width:380px;
+      top:16px; right:16px; bottom:16px; width:420px;
       min-width:280px;
-      max-width:min(720px, 90vw);
+      max-width:min(1100px, 95vw);
       border-radius:14px; transform: translateX(120%);
     }
     .panel.open{ transform: translateX(0); }
@@ -475,17 +475,13 @@
     { name: "해운대 해수욕장",     lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", desc: "해운대 해변가 실시간 화면 예시" },
     { name: "송정 해수욕장", lat: 35.177636, lng: 129.196488, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ollahotel1585&keyword=%EC%86%A1%EC%A0%95", desc: "올라호텔에서 송정 해수욕장 바라보는 뷰" },
     { name: "송정 해수욕장 파라노마", lat: 35.17574, lng: 129.1964, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KoreaWalkingToursTV_KWTT&keyword=%EC%86%A1%EC%A0%95%ED%95%B4%EC%88%98%EC%9A%95%EC%9E%A5", desc: "송정 해수욕장 파라노마" },
-
     { name: "광안리 해수욕장", lat: 35.155477, lng: 129.121923, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=광안", desc: "광안리 해수욕장 파라노마" },
     { name: "광안리 해변", lat: 35.152425, lng: 129.117296, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=4k", desc: "광안리 해변" },
     { name: "광안대교 라이브캠", lat: 35.142713, lng: 129.117057, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@BusanLive&keyword=광안대교", desc: "설명 없음" },
     { name: "광안대교 중앙", lat: 35.147592, lng: 129.1302, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=상부", desc: "광안대교 상부 현수교 중앙" },
-    
     { name: "부경대학교", lat: 35.13458, lng: 129.104934, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@PuKyongNationalUniversity&keyword=%EB%B6%80%EA%B2%BD%EB%8C%80%ED%95%99%EA%B5%90", desc: "부경대학교 실시간" },
-
     // 대전
     { name: "대전엑스포과학공원 한빛광장", lat: 36.375896, lng: 127.388113, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=대전", desc: "대전엑스포과학공원 한빛광장" },
-    
     // 서울
     { name: "서울 동대문 DDP", lat: 37.566198, lng: 127.008337, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DDPLiveSeoul&keyword=LOFI", desc: "서울 동대문 디자인 플라자" },
     { name: "한강 잠실대교", lat: 37.5237, lng: 127.092043, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=잠실대교", desc: "한강 잠실대교" },
@@ -493,45 +489,67 @@
     { name: "잠실 석촌호수", lat: 37.512603, lng: 127.106634, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=석촌호수", desc: "잠실 석촌호수" },
     { name: "반포대교", lat: 37.51514, lng: 126.99616, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DailySeoul&keyword=반포대교", desc: "반포대교 4k" },
     { name: "동호대교", lat: 37.536861, lng: 127.020525, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@seoulvibes_live&keyword=로파이", desc: "동호대교" },
-
-    
     // 오사카
     { name: "오사카성", lat: 34.687413, lng: 135.525804, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tvosakanews&keyword=Castle", desc: "오사카성" },
     { name: "오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", desc: "카니도라쿠 도톤보리점 -> 에비스바시 다리" },
     { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", desc: "에비스바시 -> 난바 방향 상점가" },
-
-    //도쿄
   ];
 
   const map = L.map('map', {
     zoomControl: true,
     attributionControl: true,
     minZoom: 3,
-    maxZoom: 20,
+    maxZoom: 18,
   }).setView([35.16, 129.15], 12);
 
+  // maxZoom: 지도에서 허용할 최대 확대
+  // maxNativeZoom: 실제 타일이 있는 최대 레벨 (넘으면 확대해서 표시 → 검은 화면 방지)
   const styles = {
     dark: {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      options: { attribution: '&copy; OpenStreetMap contributors', subdomains: 'abc', maxZoom: 19, className: 'dark-tiles' }
+      options: {
+        attribution: '&copy; OpenStreetMap contributors',
+        subdomains: 'abc',
+        maxZoom: 19,
+        maxNativeZoom: 19,
+        className: 'dark-tiles'
+      },
+      mapMaxZoom: 18
     },
     clean: {
       url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      options: { attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }
+      options: {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20,
+        maxNativeZoom: 20
+      },
+      mapMaxZoom: 18
     },
     satellite: {
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      options: { attribution: 'Imagery &copy; Esri', maxZoom: 19 }
+      options: {
+        attribution: 'Imagery &copy; Esri',
+        maxZoom: 18,
+        maxNativeZoom: 17
+      },
+      mapMaxZoom: 17
     }
   };
+
   let tileLayer = L.tileLayer(styles.dark.url, styles.dark.options).addTo(map);
   let currentStyle = 'dark';
+  map.setMaxZoom(styles.dark.mapMaxZoom);
 
   function switchStyle(name){
     if(name === currentStyle) return;
     map.removeLayer(tileLayer);
     tileLayer = L.tileLayer(styles[name].url, styles[name].options).addTo(map);
     currentStyle = name;
+    map.setMaxZoom(styles[name].mapMaxZoom);
+    if(map.getZoom() > styles[name].mapMaxZoom){
+      map.setZoom(styles[name].mapMaxZoom);
+    }
     document.querySelectorAll('#styleSwitch button').forEach(b =>
       b.classList.toggle('active', b.dataset.style === name)
     );
@@ -584,16 +602,13 @@
     activeMarker = marker;
     marker.getElement()?.classList.add('active');
     stopVideo();
-
     document.getElementById('panelTitle').textContent = cam.name;
     document.getElementById('panelLoc').textContent = cam.name;
     document.getElementById('panelDesc').textContent = cam.desc;
-
     const videoWrap = document.getElementById('videoWrap');
     const panelSrc = document.getElementById('panelSrc');
     const videoFooter = document.getElementById('videoFooter');
     const openTabBtn = document.getElementById('openTabBtn');
-
     if(cam.videoId){
       panelSrc.textContent = `source: youtube.com/watch?v=${cam.videoId}`;
       videoWrap.innerHTML =
@@ -608,7 +623,6 @@
         embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'embed=1';
       }
       const tabUrl = stripEmbed(cam.externalUrl);
-
       panelSrc.textContent = `source: ${tabUrl}`;
       videoWrap.innerHTML = `
         <iframe id="extFrame"
@@ -622,7 +636,6 @@
     } else {
       videoFooter.style.display = 'none';
     }
-
     panel.classList.add('open');
     hint.classList.add('hidden');
   }
@@ -929,41 +942,35 @@
     }
   });
 
-  // 패널 좌우 리사이즈
+  // 패널 좌우 리사이즈 (최대 1100px / 95vw)
   (function initPanelResize() {
     const panelEl = document.getElementById('panel');
     const handle = document.getElementById('panelResize');
     if (!panelEl || !handle) return;
-
     const STORAGE_KEY = 'livecam-panel-width';
     const MIN_W = 280;
-    const MAX_W = () => Math.min(720, window.innerWidth * 0.9);
-
+    const MAX_W = () => Math.min(1100, window.innerWidth * 0.95);
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const w = Math.min(MAX_W(), Math.max(MIN_W, parseInt(saved, 10)));
       panelEl.style.width = w + 'px';
     }
-
     let startX = 0;
     let startW = 0;
-
     function onMove(e) {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const delta = startX - clientX;
       const next = Math.min(MAX_W(), Math.max(MIN_W, startW + delta));
       panelEl.style.width = next + 'px';
     }
-
     function onUp() {
       panelEl.classList.remove('resizing');
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onUp);
-      localStorage.setItem(STORAGE_KEY, parseInt(panelEl.style.width, 10) || 380);
+      localStorage.setItem(STORAGE_KEY, parseInt(panelEl.style.width, 10) || 420);
     }
-
     function onDown(e) {
       e.preventDefault();
       startX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -974,7 +981,6 @@
       document.addEventListener('touchmove', onMove, { passive: false });
       document.addEventListener('touchend', onUp);
     }
-
     handle.addEventListener('mousedown', onDown);
     handle.addEventListener('touchstart', onDown, { passive: false });
   })();
