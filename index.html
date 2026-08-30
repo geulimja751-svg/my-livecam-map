@@ -126,9 +126,9 @@
   }
   @media (min-width: 720px){
     .panel{
-      top:16px; right:16px; bottom:16px; width:420px;
+      top:16px; right:16px; bottom:16px; width:380px;
       min-width:280px;
-      max-width:min(1100px, 95vw);
+      max-width:min(1100px, 90vw);
       border-radius:14px; transform: translateX(120%);
     }
     .panel.open{ transform: translateX(0); }
@@ -400,7 +400,7 @@
 <div class="topbar">
   <div class="brand">
     <div class="kicker">Live Cam Map · Demo</div>
-    <div class="title">부산 실시간 카메라</div>
+    <div class="title">실시간 카메라 지도</div>
   </div>
   <button class="add-btn" id="listBtn">☰ 목록</button>
   <button class="add-btn" id="cctvBtn">📹 국도 CCTV</button>
@@ -411,7 +411,7 @@
 <div class="hint" id="hint">지도 위 점을 눌러보세요</div>
 <div class="style-switch" id="styleSwitch">
   <button data-style="dark" class="active">다크</button>
-  <button data-style="clean">클린</button>
+  <button data-style="clean">한글</button>
   <button data-style="satellite">위성</button>
 </div>
 <div class="list-panel" id="listPanel">
@@ -480,8 +480,10 @@
     { name: "광안대교 라이브캠", lat: 35.142713, lng: 129.117057, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@BusanLive&keyword=광안대교", desc: "설명 없음" },
     { name: "광안대교 중앙", lat: 35.147592, lng: 129.1302, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=상부", desc: "광안대교 상부 현수교 중앙" },
     { name: "부경대학교", lat: 35.13458, lng: 129.104934, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@PuKyongNationalUniversity&keyword=%EB%B6%80%EA%B2%BD%EB%8C%80%ED%95%99%EA%B5%90", desc: "부경대학교 실시간" },
+
     // 대전
     { name: "대전엑스포과학공원 한빛광장", lat: 36.375896, lng: 127.388113, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=대전", desc: "대전엑스포과학공원 한빛광장" },
+
     // 서울
     { name: "서울 동대문 DDP", lat: 37.566198, lng: 127.008337, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DDPLiveSeoul&keyword=LOFI", desc: "서울 동대문 디자인 플라자" },
     { name: "한강 잠실대교", lat: 37.5237, lng: 127.092043, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=잠실대교", desc: "한강 잠실대교" },
@@ -489,7 +491,8 @@
     { name: "잠실 석촌호수", lat: 37.512603, lng: 127.106634, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=석촌호수", desc: "잠실 석촌호수" },
     { name: "반포대교", lat: 37.51514, lng: 126.99616, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DailySeoul&keyword=반포대교", desc: "반포대교 4k" },
     { name: "동호대교", lat: 37.536861, lng: 127.020525, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@seoulvibes_live&keyword=로파이", desc: "동호대교" },
-    // 오사카
+
+    // 일본
     { name: "오사카성", lat: 34.687413, lng: 135.525804, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tvosakanews&keyword=Castle", desc: "오사카성" },
     { name: "오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", desc: "카니도라쿠 도톤보리점 -> 에비스바시 다리" },
     { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", desc: "에비스바시 -> 난바 방향 상점가" },
@@ -500,10 +503,8 @@
     attributionControl: true,
     minZoom: 3,
     maxZoom: 18,
-  }).setView([35.16, 129.15], 12);
+  });
 
-  // maxZoom: 지도에서 허용할 최대 확대
-  // maxNativeZoom: 실제 타일이 있는 최대 레벨 (넘으면 확대해서 표시 → 검은 화면 방지)
   const styles = {
     dark: {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -516,17 +517,17 @@
       },
       mapMaxZoom: 18
     },
+    // 한글 라벨 (OSM name:ko 있는 지명 → 한글). 안 되면 CARTO로 교체
     clean: {
-      url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      url: 'https://tile.tracestrack.com/ko/{z}/{x}/{y}.png',
       options: {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20,
-        maxNativeZoom: 20
+        attribution: '&copy; OpenStreetMap, &copy; <a href="https://www.tracestrack.com/">Tracestrack</a>',
+        maxZoom: 19,
+        maxNativeZoom: 19
       },
       mapMaxZoom: 18
     },
-    satellite: { 
+    satellite: {
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       options: {
         attribution: 'Imagery &copy; Esri',
@@ -669,6 +670,19 @@
   }
   cams.forEach(addCamMarker);
 
+  // 등록 캠 전체가 첫 화면에 보이도록
+  (function fitAllCams() {
+    if (!cams.length) {
+      map.setView([35.16, 129.15], 12);
+      return;
+    }
+    const bounds = L.latLngBounds(cams.map(c => [c.lat, c.lng]));
+    map.fitBounds(bounds.pad(0.2), {
+      maxZoom: 7,
+      animate: false
+    });
+  })();
+
   const ITS_API_KEY = 'f9565bfc1f2b4a68a26c48120f5c27b3';
   const ITS_ENDPOINT = 'https://openapi.its.go.kr:9443/cctvInfo';
   const ITS_MIN_ZOOM = 11;
@@ -727,7 +741,7 @@
       });
       updateCount();
     }catch(e){
-      console.warn('ITS CCTV 로드 실패 (API 키 미설정이거나 CORS 문제일 수 있음):', e.message);
+      console.warn('ITS CCTV 로드 실패:', e.message);
     }finally{
       cctvLoading = false;
     }
@@ -942,14 +956,13 @@
     }
   });
 
-  // 패널 좌우 리사이즈 (최대 1100px / 95vw)
   (function initPanelResize() {
     const panelEl = document.getElementById('panel');
     const handle = document.getElementById('panelResize');
     if (!panelEl || !handle) return;
     const STORAGE_KEY = 'livecam-panel-width';
     const MIN_W = 280;
-    const MAX_W = () => Math.min(1100, window.innerWidth * 0.95);
+    const MAX_W = () => Math.min(1100, window.innerWidth * 0.9);
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const w = Math.min(MAX_W(), Math.max(MIN_W, parseInt(saved, 10)));
@@ -969,7 +982,7 @@
       document.removeEventListener('mouseup', onUp);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onUp);
-      localStorage.setItem(STORAGE_KEY, parseInt(panelEl.style.width, 10) || 420);
+      localStorage.setItem(STORAGE_KEY, parseInt(panelEl.style.width, 10) || 380);
     }
     function onDown(e) {
       e.preventDefault();
