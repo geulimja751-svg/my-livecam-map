@@ -465,6 +465,12 @@ const styles = {
     );
   }
 
+function getMaptilerLayerFactory(){
+  if (typeof L.maptilerLayer === 'function') return L.maptilerLayer;
+  if (L.maptiler && typeof L.maptiler.maptilerLayer === 'function') return L.maptiler.maptilerLayer;
+  return null;
+}
+
   function createStyleLayer(name) {
     const s = styles[name];
 
@@ -473,12 +479,15 @@ const styles = {
         console.warn('MapTiler 키 없음 → CARTO');
         return createCartoLayer();
       }
-      // 벡터 타일 SDK 레이어 - 언어 강제 지정 가능
-      // 주의: 반드시 L.maptiler.maptilerLayer (앞에 .maptiler. 필요!)
-      return L.maptiler.maptilerLayer({
+      const factory = getMaptilerLayerFactory();
+      if (!factory) {
+        console.warn('MapTiler 레이어 함수를 찾을 수 없음 (L.maptilerLayer / L.maptiler.maptilerLayer 둘 다 없음) → CARTO');
+        return createCartoLayer();
+      }
+      return factory({
         apiKey: MAPTILER_KEY,
-        style: maptilersdk.MapStyle.STREETS,
-        language: maptilersdk.Language.KOREAN,
+        style: (window.maptilersdk && maptilersdk.MapStyle) ? maptilersdk.MapStyle.STREETS : undefined,
+        language: (window.maptilersdk && maptilersdk.Language) ? maptilersdk.Language.KOREAN : 'ko',
       });
     }
 
