@@ -473,8 +473,9 @@ const styles = {
         console.warn('MapTiler 키 없음 → CARTO');
         return createCartoLayer();
       }
-      // 벡터 타일 기반 SDK 레이어 - 언어 강제 지정 가능
-      return L.maptilerLayer({
+      // 벡터 타일 SDK 레이어 - 언어 강제 지정 가능
+      // 주의: 반드시 L.maptiler.maptilerLayer (앞에 .maptiler. 필요!)
+      return L.maptiler.maptilerLayer({
         apiKey: MAPTILER_KEY,
         style: maptilersdk.MapStyle.STREETS,
         language: maptilersdk.Language.KOREAN,
