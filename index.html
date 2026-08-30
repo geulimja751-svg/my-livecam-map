@@ -390,9 +390,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
-<script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0/maptiler-sdk.umd.min.js"></script>
-<link href="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0/maptiler-sdk.css" rel="stylesheet" />
-<script src="https://cdn.maptiler.com/leaflet-maptilersdk/v3.0.0/leaflet-maptilersdk.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.3.0/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.3.0/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/[email protected]/leaflet-maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@maptiler/maplibre-gl-omt-language/index.js"></script>
 <script>
   const MAPTILER_KEY = 'EhogGAwYASE0hk398mb8';
 
@@ -480,15 +481,24 @@ function getMaptilerLayerFactory(){
         console.warn('MapTiler 키 없음 → CARTO');
         return createCartoLayer();
       }
-      if (typeof L.maptilerLayer !== 'function') {
-        console.warn('MapTiler 레이어 플러그인 로드 안 됨 → CARTO');
+      if (typeof L.maplibreGL !== 'function') {
+        console.warn('maplibre-gl-leaflet 로드 안 됨 → CARTO');
         return createCartoLayer();
       }
-      return L.maptilerLayer({
-        apiKey: MAPTILER_KEY,
-        style: L.MaptilerStyle.STREETS,
-        language: 'ko',
+      const gl = L.maplibreGL({
+        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
+        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
       });
+      // 스타일 로드가 끝나면 한국어로 라벨 전환
+      gl.on('add', () => {
+        const mMap = gl.getMaplibreMap();
+        const applyLang = () => {
+          if (typeof mMap.setLanguage === 'function') mMap.setLanguage('ko');
+        };
+        if (mMap.isStyleLoaded && mMap.isStyleLoaded()) applyLang();
+        else mMap.once('load', applyLang);
+      });
+      return gl;
     }
 
     return L.tileLayer(s.url, s.options);
