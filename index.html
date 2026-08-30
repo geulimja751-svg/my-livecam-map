@@ -424,7 +424,7 @@
     maxZoom: 18,
   });
 
-  const styles = {
+const styles = {
     dark: {
       type: 'raster',
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -437,8 +437,9 @@
       },
       mapMaxZoom: 18
     },
+    // MapTiler 래스터 (플러그인 불필요, 키만 있으면 됨)
     clean: {
-      type: 'maptiler',
+      type: 'maptiler-raster',
       mapMaxZoom: 18
     },
     satellite: {
@@ -459,36 +460,35 @@
       {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         subdomains: 'abcd',
-        maxZoom: 20,
-        maxNativeZoom: 20
+        maxZoom: 20
       }
     );
   }
 
   function createStyleLayer(name) {
     const s = styles[name];
-    if (s.type === 'maptiler') {
+
+    if (s.type === 'maptiler-raster') {
       if (!MAPTILER_KEY) {
-        console.warn('[지도] MapTiler 키 없음 → CARTO 폴백');
+        console.warn('MapTiler 키 없음 → CARTO');
         return createCartoLayer();
       }
-      if (!L.maptiler || typeof L.maptiler.maptilerLayer !== 'function') {
-        console.warn('[지도] L.maptiler 없음 → CARTO 폴백');
-        return createCartoLayer();
-      }
-      try {
-        const opts = { apiKey: MAPTILER_KEY, language: 'ko' };
-        if (L.maptiler.MapStyle && L.maptiler.MapStyle.STREETS) {
-          opts.style = L.maptiler.MapStyle.STREETS;
-        } else {
-          opts.style = 'streets-v2';
+      // 플러그인 없이 동작하는 MapTiler 래스터 타일
+      return L.tileLayer(
+        `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`,
+        {
+          tileSize: 512,
+          zoomOffset: -1,
+          minZoom: 1,
+          maxZoom: 19,
+          attribution:
+            '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> ' +
+            '<a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap</a>',
+          crossOrigin: true
         }
-        return L.maptiler.maptilerLayer(opts);
-      } catch (err) {
-        console.error('[지도] MapTiler 실패 → CARTO 폴백', err);
-        return createCartoLayer();
-      }
+      );
     }
+
     return L.tileLayer(s.url, s.options);
   }
 
