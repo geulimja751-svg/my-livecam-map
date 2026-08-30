@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+<link href="https://cdn.maptiler.com/maptiler-sdk-js/v3.9.0/maptiler-sdk.css" rel="stylesheet" />
 <style>
   :root{
     --bg: #0a0e14;
@@ -27,10 +28,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Malgun Gothic', sans-serif;
     overflow:hidden;
   }
-  #map{
-    position:absolute; inset:0;
-    background:var(--bg);
-  }
+  #map{ position:absolute; inset:0; background:var(--bg); }
   .leaflet-container{ background:var(--bg); }
   .dark-tiles{
     filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
@@ -38,22 +36,14 @@
   .topbar{
     position:absolute; top:0; left:0; right:0; z-index:1000;
     display:flex; align-items:center; gap:10px;
-    padding:16px 18px;
-    pointer-events:none;
-    flex-wrap:wrap;
+    padding:16px 18px; pointer-events:none; flex-wrap:wrap;
   }
-  .brand{
-    display:flex; flex-direction:column; gap:2px;
-    pointer-events:auto;
-  }
+  .brand{ display:flex; flex-direction:column; gap:2px; pointer-events:auto; }
   .brand .kicker{
     font-family:var(--mono); font-size:10px; letter-spacing:0.18em;
     color:var(--accent); text-transform:uppercase;
   }
-  .brand .title{
-    font-size:15px; font-weight:600; color:var(--text);
-    letter-spacing:-0.01em;
-  }
+  .brand .title{ font-size:15px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
   .count-pill{
     margin-left:auto; pointer-events:auto;
     background:var(--panel); border:1px solid var(--line);
@@ -63,19 +53,15 @@
   }
   .count-pill b{ color:var(--text); font-weight:600; }
   .count-pill .dot{
-    width:6px; height:6px; border-radius:50%;
-    background:var(--live-red);
-    box-shadow:0 0 6px var(--live-red);
-    animation: blink 1.6s ease-in-out infinite;
+    width:6px; height:6px; border-radius:50%; background:var(--live-red);
+    box-shadow:0 0 6px var(--live-red); animation: blink 1.6s ease-in-out infinite;
   }
   @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.25;} }
   .cam-marker{
-    width:20px; height:20px; border-radius:50%;
-    background:var(--accent);
+    width:20px; height:20px; border-radius:50%; background:var(--accent);
     border:2px solid #0a0e14;
     box-shadow:0 0 0 4px var(--accent-glow), 0 0 14px var(--accent-glow);
-    cursor:pointer;
-    transition: transform 0.15s ease;
+    cursor:pointer; transition: transform 0.15s ease;
   }
   .cam-marker:hover{ transform:scale(1.25); }
   .cam-marker.active{
@@ -83,8 +69,7 @@
     box-shadow:0 0 0 5px rgba(255,176,32,0.5), 0 0 18px rgba(255,176,32,0.6);
   }
   .cctv-marker{
-    width:12px; height:12px; border-radius:50%;
-    background:var(--cctv-color);
+    width:12px; height:12px; border-radius:50%; background:var(--cctv-color);
     border:1.5px solid #0a0e14;
     box-shadow:0 0 0 3px rgba(255,176,32,0.35), 0 0 8px rgba(255,176,32,0.5);
     cursor:pointer;
@@ -94,31 +79,23 @@
     box-shadow:0 0 0 4px rgba(255,77,94,0.45), 0 0 10px rgba(255,77,94,0.6);
   }
   .marker-cluster-custom{
-    background:rgba(255,176,32,0.25);
-    border:1px solid rgba(255,176,32,0.6);
-    border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
+    background:rgba(255,176,32,0.25); border:1px solid rgba(255,176,32,0.6);
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
     color:#0a0e14; font-weight:700; font-size:12px;
   }
   .marker-cluster-custom span{
-    background:var(--cctv-color);
-    width:100%; height:100%; border-radius:50%;
+    background:var(--cctv-color); width:100%; height:100%; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
   }
   .leaflet-tooltip.cam-tip{
     background:var(--panel); border:1px solid var(--line);
     color:var(--text); font-size:12px; font-weight:600;
-    padding:6px 10px; border-radius:8px;
-    box-shadow:0 4px 16px rgba(0,0,0,0.45);
+    padding:6px 10px; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.45);
   }
-  .leaflet-tooltip.cam-tip::before{
-    border-top-color:var(--line);
-  }
+  .leaflet-tooltip.cam-tip::before{ border-top-color:var(--line); }
   .panel{
-    position:absolute; z-index:1100;
-    background:var(--panel);
-    border:1px solid var(--line);
-    box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+    position:absolute; z-index:1100; background:var(--panel);
+    border:1px solid var(--line); box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
     display:flex; flex-direction:column;
     transform: translateY(110%);
     transition: transform 0.32s cubic-bezier(.2,.9,.25,1);
@@ -127,46 +104,35 @@
   @media (min-width: 720px){
     .panel{
       top:16px; right:16px; bottom:16px; width:380px;
-      min-width:280px;
-      max-width:min(1600px, 96vw);
+      min-width:280px; max-width:min(1600px, 96vw);
       border-radius:14px; transform: translateX(120%);
     }
     .panel.open{ transform: translateX(0); }
   }
   @media (max-width: 719px){
-    .panel{
-      left:0; right:0; bottom:0; height:58%;
-      border-radius:16px 16px 0 0;
-    }
+    .panel{ left:0; right:0; bottom:0; height:58%; border-radius:16px 16px 0 0; }
     .panel.open{ transform: translateY(0); }
     .panel-resize{ display:none; }
   }
   .panel-resize{
-    position:absolute; left:0; top:0; bottom:0; width:8px;
-    cursor:ew-resize; z-index:20;
+    position:absolute; left:0; top:0; bottom:0; width:8px; cursor:ew-resize; z-index:20;
   }
   .panel-resize::after{
-    content:'';
-    position:absolute; left:2px; top:50%; transform:translateY(-50%);
-    width:3px; height:40px; border-radius:2px;
-    background:var(--line); opacity:0.6;
+    content:''; position:absolute; left:2px; top:50%; transform:translateY(-50%);
+    width:3px; height:40px; border-radius:2px; background:var(--line); opacity:0.6;
     transition: background 0.15s, opacity 0.15s;
   }
   .panel-resize:hover::after,
-  .panel.resizing .panel-resize::after{
-    background:var(--accent); opacity:1;
-  }
+  .panel.resizing .panel-resize::after{ background:var(--accent); opacity:1; }
   .panel-head{
     display:flex; align-items:center; gap:10px;
-    padding:14px 16px; border-bottom:1px solid var(--line);
-    flex-shrink:0;
+    padding:14px 16px; border-bottom:1px solid var(--line); flex-shrink:0;
   }
   .live-badge{
     display:flex; align-items:center; gap:5px;
     background:rgba(255,77,94,0.12); border:1px solid rgba(255,77,94,0.35);
     color:var(--live-red); font-family:var(--mono); font-size:10px;
-    font-weight:700; letter-spacing:0.08em;
-    padding:3px 8px; border-radius:20px;
+    font-weight:700; letter-spacing:0.08em; padding:3px 8px; border-radius:20px;
   }
   .live-badge .dot{
     width:5px; height:5px; border-radius:50%; background:var(--live-red);
@@ -178,8 +144,7 @@
   }
   .panel-close{
     background:none; border:none; color:var(--text-dim);
-    font-size:18px; cursor:pointer; padding:4px 6px; line-height:1;
-    border-radius:6px;
+    font-size:18px; cursor:pointer; padding:4px 6px; line-height:1; border-radius:6px;
   }
   .panel-close:hover{ background:var(--line); color:var(--text); }
   .video-wrap{
@@ -191,18 +156,14 @@
   }
   .video-footer{
     display:none; align-items:center; justify-content:flex-end;
-    padding:8px 12px; border-top:1px solid var(--line);
-    background:var(--panel); flex-shrink:0;
+    padding:8px 12px; border-top:1px solid var(--line); background:var(--panel); flex-shrink:0;
   }
   .video-footer a{
     font-size:12px; font-weight:600; color:var(--accent);
     text-decoration:none; padding:6px 12px; border-radius:8px;
-    border:1px solid rgba(79,179,255,0.35);
-    background:rgba(79,179,255,0.08);
+    border:1px solid rgba(79,179,255,0.35); background:rgba(79,179,255,0.08);
   }
-  .video-footer a:hover{
-    background:rgba(79,179,255,0.16);
-  }
+  .video-footer a:hover{ background:rgba(79,179,255,0.16); }
   .video-state{
     position:absolute; inset:0;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -227,58 +188,41 @@
     position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
     z-index:900; pointer-events:none;
     background:var(--panel); border:1px solid var(--line);
-    padding:8px 14px; border-radius:20px;
-    font-size:11.5px; color:var(--text-dim);
+    padding:8px 14px; border-radius:20px; font-size:11.5px; color:var(--text-dim);
     opacity:1; transition:opacity 0.4s ease;
   }
   .hint.hidden{ opacity:0; }
-  .leaflet-control-zoom{
-    border:1px solid var(--line) !important;
-    margin-top:70px !important;
-  }
+  .leaflet-control-zoom{ border:1px solid var(--line) !important; margin-top:70px !important; }
   .leaflet-control-zoom a{
-    background:var(--panel) !important; color:var(--text) !important;
-    border-color:var(--line) !important;
+    background:var(--panel) !important; color:var(--text) !important; border-color:var(--line) !important;
   }
   .leaflet-control-zoom a:hover{ background:var(--line) !important; }
   .leaflet-control-attribution{
-    background:rgba(10,14,20,0.75) !important; color:var(--text-dim) !important;
-    font-size:9px !important;
+    background:rgba(10,14,20,0.75) !important; color:var(--text-dim) !important; font-size:9px !important;
   }
   .leaflet-control-attribution a{ color:var(--accent) !important; }
   .style-switch{
     position:absolute; left:16px; bottom:20px; z-index:900;
-    display:flex; gap:2px;
-    background:var(--panel); border:1px solid var(--line);
-    border-radius:12px; padding:3px;
-    box-shadow:0 6px 24px rgba(0,0,0,0.4);
+    display:flex; gap:2px; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:3px; box-shadow:0 6px 24px rgba(0,0,0,0.4);
   }
   .style-switch button{
     appearance:none; border:none; background:transparent;
     color:var(--text-dim); font-size:11.5px; font-weight:600;
-    padding:7px 12px; border-radius:9px; cursor:pointer;
-    font-family:inherit; letter-spacing:-0.01em;
-    transition: background 0.15s ease, color 0.15s ease;
+    padding:7px 12px; border-radius:9px; cursor:pointer; font-family:inherit;
+    letter-spacing:-0.01em; transition: background 0.15s ease, color 0.15s ease;
   }
   .style-switch button:hover{ color:var(--text); }
-  .style-switch button.active{
-    background:var(--accent); color:#0a0e14;
-  }
+  .style-switch button.active{ background:var(--accent); color:#0a0e14; }
   .add-btn{
-    pointer-events:auto;
-    display:flex; align-items:center; gap:6px;
+    pointer-events:auto; display:flex; align-items:center; gap:6px;
     background:var(--panel); border:1px solid var(--line);
     color:var(--text); font-size:12px; font-weight:600;
-    padding:8px 14px; border-radius:20px; cursor:pointer;
-    font-family:inherit;
+    padding:8px 14px; border-radius:20px; cursor:pointer; font-family:inherit;
   }
   .add-btn:hover{ border-color:var(--accent); color:var(--accent); }
-  .add-btn.active{
-    background:var(--accent); color:#0a0e14; border-color:var(--accent);
-  }
-  #cctvBtn.active{
-    background:var(--cctv-color); color:#0a0e14; border-color:var(--cctv-color);
-  }
+  .add-btn.active{ background:var(--accent); color:#0a0e14; border-color:var(--accent); }
+  #cctvBtn.active{ background:var(--cctv-color); color:#0a0e14; border-color:var(--cctv-color); }
   #map.picking{ cursor:crosshair; }
   .pick-hint{
     position:absolute; top:64px; left:50%; transform:translateX(-50%);
@@ -288,46 +232,31 @@
   }
   .pick-hint.show{ display:block; }
   .temp-marker{
-    width:22px; height:22px; border-radius:50%;
-    background:#ff8a1e; border:2px solid #0a0e14;
+    width:22px; height:22px; border-radius:50%; background:#ff8a1e; border:2px solid #0a0e14;
     box-shadow:0 0 0 5px rgba(255,138,30,0.45), 0 0 16px rgba(255,138,30,0.6);
   }
   .modal-overlay{
-    position:absolute; inset:0; z-index:1300;
-    background:rgba(5,7,10,0.55);
-    display:none; align-items:center; justify-content:center;
-    padding:20px;
+    position:absolute; inset:0; z-index:1300; background:rgba(5,7,10,0.55);
+    display:none; align-items:center; justify-content:center; padding:20px;
   }
   .modal-overlay.show{ display:flex; }
   .modal-box{
-    width:100%; max-width:380px;
-    background:var(--panel); border:1px solid var(--line);
-    border-radius:14px; padding:18px;
-    box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    width:100%; max-width:380px; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,0.6);
   }
-  .modal-box h3{
-    margin:0 0 4px; font-size:15px; color:var(--text);
-  }
-  .modal-box .coord{
-    font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:14px;
-  }
+  .modal-box h3{ margin:0 0 4px; font-size:15px; color:var(--text); }
+  .modal-box .coord{ font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:14px; }
   .field{ margin-bottom:12px; }
-  .field label{
-    display:block; font-size:11.5px; color:var(--text-dim); margin-bottom:5px;
-  }
+  .field label{ display:block; font-size:11.5px; color:var(--text-dim); margin-bottom:5px; }
   .field input, .field textarea{
     width:100%; background:#0a0e14; border:1px solid var(--line);
-    color:var(--text); font-size:13px; padding:9px 10px;
-    border-radius:8px; font-family:inherit; resize:none;
+    color:var(--text); font-size:13px; padding:9px 10px; border-radius:8px;
+    font-family:inherit; resize:none;
   }
-  .field input:focus, .field textarea:focus{
-    outline:none; border-color:var(--accent);
-  }
+  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--accent); }
   .field .err{ color:var(--live-red); font-size:11px; margin-top:5px; display:none; }
   .field .err.show{ display:block; }
-  .modal-actions{
-    display:flex; gap:8px; margin-top:4px;
-  }
+  .modal-actions{ display:flex; gap:8px; margin-top:4px; }
   .modal-actions button{
     flex:1; padding:10px; border-radius:8px; border:none;
     font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
@@ -352,12 +281,9 @@
   .btn-copy:hover{ background:rgba(79,179,255,0.1); }
   .btn-copy.copied{ background:var(--accent); color:#0a0e14; }
   .list-panel{
-    position:absolute; z-index:1150;
-    background:var(--panel); border:1px solid var(--line);
-    display:flex; flex-direction:column;
-    box-shadow: 8px 0 40px rgba(0,0,0,0.5);
-    transform: translateX(-110%);
-    transition: transform 0.3s cubic-bezier(.2,.9,.25,1);
+    position:absolute; z-index:1150; background:var(--panel); border:1px solid var(--line);
+    display:flex; flex-direction:column; box-shadow: 8px 0 40px rgba(0,0,0,0.5);
+    transform: translateX(-110%); transition: transform 0.3s cubic-bezier(.2,.9,.25,1);
   }
   @media (min-width: 720px){
     .list-panel{ top:16px; left:16px; bottom:16px; width:300px; border-radius:14px; }
@@ -373,22 +299,17 @@
   }
   .list-head input{
     flex:1; background:#0a0e14; border:1px solid var(--line);
-    color:var(--text); font-size:13px; padding:8px 10px; border-radius:8px;
-    font-family:inherit;
+    color:var(--text); font-size:13px; padding:8px 10px; border-radius:8px; font-family:inherit;
   }
   .list-head input:focus{ outline:none; border-color:var(--accent); }
-  .list-items{
-    list-style:none; margin:0; padding:6px; overflow-y:auto; flex:1;
-  }
+  .list-items{ list-style:none; margin:0; padding:6px; overflow-y:auto; flex:1; }
   .list-items li{
     padding:9px 10px; border-radius:8px; cursor:pointer;
-    font-size:13px; color:var(--text);
-    display:flex; align-items:center; gap:8px;
+    font-size:13px; color:var(--text); display:flex; align-items:center; gap:8px;
   }
   .list-items li:hover{ background:var(--line); }
   .list-items li .tag{
-    width:7px; height:7px; border-radius:50%; flex-shrink:0;
-    background:var(--accent);
+    width:7px; height:7px; border-radius:50%; flex-shrink:0; background:var(--accent);
   }
   .list-items li.is-cctv .tag{ background:var(--cctv-color); }
   .list-items li .nm{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -465,18 +386,18 @@
     </div>
   </div>
 </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
-<!-- MapTiler Leaflet 플러그인 (한글 라벨용) -->
-<script src="https://cdn.jsdelivr.net/npm/@maptiler/leaflet-maptilersdk@3.0.0/dist/leaflet-maptilersdk.umd.min.js"></script>
+<script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.9.0/maptiler-sdk.umd.min.js"></script>
+<script src="https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.1/leaflet-maptilersdk.js"></script>
 <script>
-  // ★★★ MapTiler에서 만든 키를 여기에 붙여넣기 ★★★
   const MAPTILER_KEY = 'EhogGAwYASE0hk398mb8';
 
   const cams = [
-    { name: "부산항대교 전망",     lat: 35.1046, lng: 129.0768, videoId: "jfKfPfyJRdk", desc: "부산항대교 인근 상시 라이브 스트림 예시" },
-    { name: "해운대 해수욕장",     lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", desc: "해운대 해변가 실시간 화면 예시" },
+    { name: "부산항대교 전망", lat: 35.1046, lng: 129.0768, videoId: "jfKfPfyJRdk", desc: "부산항대교 인근 상시 라이브 스트림 예시" },
+    { name: "해운대 해수욕장", lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", desc: "해운대 해변가 실시간 화면 예시" },
     { name: "송정 해수욕장", lat: 35.177636, lng: 129.196488, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ollahotel1585&keyword=%EC%86%A1%EC%A0%95", desc: "올라호텔에서 송정 해수욕장 바라보는 뷰" },
     { name: "송정 해수욕장 파라노마", lat: 35.17574, lng: 129.1964, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KoreaWalkingToursTV_KWTT&keyword=%EC%86%A1%EC%A0%95%ED%95%B4%EC%88%98%EC%9A%95%EC%9E%A5", desc: "송정 해수욕장 파라노마" },
     { name: "광안리 해수욕장", lat: 35.155477, lng: 129.121923, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=광안", desc: "광안리 해수욕장 파라노마" },
@@ -517,7 +438,7 @@
       mapMaxZoom: 18
     },
     clean: {
-      type: 'maptiler', // 한글 라벨
+      type: 'maptiler',
       mapMaxZoom: 18
     },
     satellite: {
@@ -532,24 +453,41 @@
     }
   };
 
+  function createCartoLayer() {
+    return L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20,
+        maxNativeZoom: 20
+      }
+    );
+  }
+
   function createStyleLayer(name) {
     const s = styles[name];
     if (s.type === 'maptiler') {
-      if (!MAPTILER_KEY || MAPTILER_KEY === 'YOUR_MAPTILER_API_KEY') {
-        console.warn('MapTiler API 키를 설정해주세요');
+      if (!MAPTILER_KEY) {
+        console.warn('[지도] MapTiler 키 없음 → CARTO 폴백');
+        return createCartoLayer();
       }
-      // MapTiler 벡터 타일 + 한국어 지명
-      const opts = {
-        apiKey: MAPTILER_KEY,
-        language: 'ko'
-      };
-      // 스타일 ID (패키지 버전에 따라 MapStyle 객체가 없을 수 있음)
-      if (L.maptiler && L.maptiler.MapStyle && L.maptiler.MapStyle.STREETS) {
-        opts.style = L.maptiler.MapStyle.STREETS;
-      } else {
-        opts.style = 'streets-v2';
+      if (!L.maptiler || typeof L.maptiler.maptilerLayer !== 'function') {
+        console.warn('[지도] L.maptiler 없음 → CARTO 폴백');
+        return createCartoLayer();
       }
-      return L.maptiler.maptilerLayer(opts);
+      try {
+        const opts = { apiKey: MAPTILER_KEY, language: 'ko' };
+        if (L.maptiler.MapStyle && L.maptiler.MapStyle.STREETS) {
+          opts.style = L.maptiler.MapStyle.STREETS;
+        } else {
+          opts.style = 'streets-v2';
+        }
+        return L.maptiler.maptilerLayer(opts);
+      } catch (err) {
+        console.error('[지도] MapTiler 실패 → CARTO 폴백', err);
+        return createCartoLayer();
+      }
     }
     return L.tileLayer(s.url, s.options);
   }
@@ -560,17 +498,31 @@
 
   function switchStyle(name) {
     if (name === currentStyle) return;
-    map.removeLayer(tileLayer);
-    tileLayer = createStyleLayer(name).addTo(map);
-    currentStyle = name;
-    map.setMaxZoom(styles[name].mapMaxZoom);
-    if (map.getZoom() > styles[name].mapMaxZoom) {
-      map.setZoom(styles[name].mapMaxZoom);
-    }
+
     document.querySelectorAll('#styleSwitch button').forEach(b =>
       b.classList.toggle('active', b.dataset.style === name)
     );
+
+    try {
+      if (tileLayer) map.removeLayer(tileLayer);
+    } catch (e) {
+      console.warn('이전 레이어 제거 실패', e);
+    }
+
+    try {
+      tileLayer = createStyleLayer(name).addTo(map);
+      currentStyle = name;
+      map.setMaxZoom(styles[name].mapMaxZoom);
+      if (map.getZoom() > styles[name].mapMaxZoom) {
+        map.setZoom(styles[name].mapMaxZoom);
+      }
+    } catch (e) {
+      console.error('스타일 전환 실패', e);
+      tileLayer = createCartoLayer().addTo(map);
+      currentStyle = name;
+    }
   }
+
   document.getElementById('styleSwitch').addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (btn) switchStyle(btn.dataset.style);
@@ -625,12 +577,10 @@
       const tabUrl = stripEmbed(cam.externalUrl);
       panelSrc.textContent = `source: ${tabUrl}`;
       videoWrap.innerHTML = `
-        <iframe id="extFrame"
-          src="${embedUrl}"
+        <iframe id="extFrame" src="${embedUrl}"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen
-          style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#000"></iframe>
-      `;
+          style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#000"></iframe>`;
       openTabBtn.href = tabUrl;
       videoFooter.style.display = 'flex';
     } else {
@@ -654,10 +604,7 @@
     const icon = L.divIcon({ className: 'cam-marker', iconSize: [20,20] });
     const marker = L.marker([cam.lat, cam.lng], { icon }).addTo(map);
     marker.bindTooltip(cam.name, {
-      direction: 'top',
-      offset: [0, -12],
-      className: 'cam-tip',
-      opacity: 1,
+      direction: 'top', offset: [0, -12], className: 'cam-tip', opacity: 1,
     });
     marker.on('click', () => openCam(cam, marker));
     camMarkers.set(cam, marker);
@@ -670,15 +617,9 @@
   cams.forEach(addCamMarker);
 
   (function fitAllCams() {
-    if (!cams.length) {
-      map.setView([35.16, 129.15], 12);
-      return;
-    }
+    if (!cams.length) { map.setView([35.16, 129.15], 12); return; }
     const bounds = L.latLngBounds(cams.map(c => [c.lat, c.lng]));
-    map.fitBounds(bounds.pad(0.2), {
-      maxZoom: 7,
-      animate: false
-    });
+    map.fitBounds(bounds.pad(0.2), { maxZoom: 7, animate: false });
   })();
 
   const ITS_API_KEY = 'f9565bfc1f2b4a68a26c48120f5c27b3';
@@ -698,25 +639,16 @@
 
   function itsUrl(bounds){
     const p = new URLSearchParams({
-      apiKey: ITS_API_KEY,
-      type: 'all',
-      cctvType: '1',
-      minX: bounds.getWest(),
-      maxX: bounds.getEast(),
-      minY: bounds.getSouth(),
-      maxY: bounds.getNorth(),
-      getType: 'json',
+      apiKey: ITS_API_KEY, type: 'all', cctvType: '1',
+      minX: bounds.getWest(), maxX: bounds.getEast(),
+      minY: bounds.getSouth(), maxY: bounds.getNorth(), getType: 'json',
     });
     return `${ITS_ENDPOINT}?${p.toString()}`;
   }
 
   async function loadCctvInView(){
     if(!cctvOn || cctvLoading) return;
-    if(map.getZoom() < ITS_MIN_ZOOM){
-      cctvLayer.clearLayers();
-      updateCount();
-      return;
-    }
+    if(map.getZoom() < ITS_MIN_ZOOM){ cctvLayer.clearLayers(); updateCount(); return; }
     cctvLoading = true;
     try{
       const res = await fetch(itsUrl(map.getBounds()));
@@ -729,10 +661,7 @@
         const icon = L.divIcon({ className: 'cctv-marker', iconSize: [12,12] });
         const marker = L.marker([c.coordy, c.coordx], { icon });
         marker.bindTooltip(c.cctvname || 'CCTV', {
-          direction: 'top',
-          offset: [0, -8],
-          className: 'cam-tip',
-          opacity: 1,
+          direction: 'top', offset: [0, -8], className: 'cam-tip', opacity: 1,
         });
         marker.on('click', () => openCctv(c, marker));
         cctvLayer.addLayer(marker);
@@ -787,14 +716,8 @@
   function toggleCctv(){
     cctvOn = !cctvOn;
     document.getElementById('cctvBtn').classList.toggle('active', cctvOn);
-    if(cctvOn){
-      map.addLayer(cctvLayer);
-      loadCctvInView();
-    }else{
-      map.removeLayer(cctvLayer);
-      cctvLayer.clearLayers();
-      updateCount();
-    }
+    if(cctvOn){ map.addLayer(cctvLayer); loadCctvInView(); }
+    else { map.removeLayer(cctvLayer); cctvLayer.clearLayers(); updateCount(); }
   }
   document.getElementById('cctvBtn').addEventListener('click', toggleCctv);
   map.on('moveend', () => { if(cctvOn) loadCctvInView(); });
@@ -913,21 +836,9 @@
     const errEl = document.getElementById('fUrlErr');
     let camData;
     if(vid){
-      camData = {
-        name,
-        lat: Number(pickedLatLng.lat.toFixed(6)),
-        lng: Number(pickedLatLng.lng.toFixed(6)),
-        videoId: vid,
-        desc
-      };
+      camData = { name, lat: Number(pickedLatLng.lat.toFixed(6)), lng: Number(pickedLatLng.lng.toFixed(6)), videoId: vid, desc };
     } else if(/^https?:\/\//i.test(urlRaw)){
-      camData = {
-        name,
-        lat: Number(pickedLatLng.lat.toFixed(6)),
-        lng: Number(pickedLatLng.lng.toFixed(6)),
-        externalUrl: urlRaw,
-        desc
-      };
+      camData = { name, lat: Number(pickedLatLng.lat.toFixed(6)), lng: Number(pickedLatLng.lng.toFixed(6)), externalUrl: urlRaw, desc };
     } else {
       errEl.classList.add('show');
       return;
@@ -966,12 +877,10 @@
       const w = Math.min(MAX_W(), Math.max(MIN_W, parseInt(saved, 10)));
       panelEl.style.width = w + 'px';
     }
-    let startX = 0;
-    let startW = 0;
+    let startX = 0, startW = 0;
     function onMove(e) {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const delta = startX - clientX;
-      const next = Math.min(MAX_W(), Math.max(MIN_W, startW + delta));
+      const next = Math.min(MAX_W(), Math.max(MIN_W, startW + (startX - clientX)));
       panelEl.style.width = next + 'px';
     }
     function onUp() {
