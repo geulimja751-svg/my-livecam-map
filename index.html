@@ -473,20 +473,12 @@ const styles = {
         console.warn('MapTiler 키 없음 → CARTO');
         return createCartoLayer();
       }
-      // 플러그인 없이 동작하는 MapTiler 래스터 타일
-      return L.tileLayer(
-        `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`,
-        {
-          tileSize: 512,
-          zoomOffset: -1,
-          minZoom: 1,
-          maxZoom: 19,
-          attribution:
-            '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> ' +
-            '<a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap</a>',
-          crossOrigin: true
-        }
-      );
+      // 벡터 타일 기반 SDK 레이어 - 언어 강제 지정 가능
+      return L.maptilerLayer({
+        apiKey: MAPTILER_KEY,
+        style: maptilersdk.MapStyle.STREETS,
+        language: maptilersdk.Language.KOREAN,
+      });
     }
 
     return L.tileLayer(s.url, s.options);
