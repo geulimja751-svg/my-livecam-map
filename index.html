@@ -962,7 +962,7 @@
     if (!panelEl || !handle) return;
     const STORAGE_KEY = 'livecam-panel-width';
     const MIN_W = 280;
-    const MAX_W = () => Math.min(1100, window.innerWidth * 0.9);
+    const MAX_W = () => Math.min(1600, window.innerWidth * 0.9);
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const w = Math.min(MAX_W(), Math.max(MIN_W, parseInt(saved, 10)));
