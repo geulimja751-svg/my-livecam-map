@@ -391,7 +391,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
 <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.9.0/maptiler-sdk.umd.min.js"></script>
-<script src="https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.1/leaflet-maptilersdk.js"></script>
+<script src="https://cdn.maptiler.com/leaflet-maptilersdk/v3.0.0/leaflet-maptilersdk.js"></script>
 <script>
   const MAPTILER_KEY = 'EhogGAwYASE0hk398mb8';
 
@@ -479,15 +479,14 @@ function getMaptilerLayerFactory(){
         console.warn('MapTiler 키 없음 → CARTO');
         return createCartoLayer();
       }
-      const factory = getMaptilerLayerFactory();
-      if (!factory) {
-        console.warn('MapTiler 레이어 함수를 찾을 수 없음 (L.maptilerLayer / L.maptiler.maptilerLayer 둘 다 없음) → CARTO');
+      if (typeof L.maptilerLayer !== 'function') {
+        console.warn('MapTiler 레이어 플러그인 로드 안 됨 → CARTO');
         return createCartoLayer();
       }
-      return factory({
+      return L.maptilerLayer({
         apiKey: MAPTILER_KEY,
-        style: (window.maptilersdk && maptilersdk.MapStyle) ? maptilersdk.MapStyle.STREETS : undefined,
-        language: (window.maptilersdk && maptilersdk.Language) ? maptilersdk.Language.KOREAN : 'ko',
+        style: L.MaptilerStyle.STREETS,
+        language: 'ko',
       });
     }
 
