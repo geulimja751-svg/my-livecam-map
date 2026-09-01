@@ -10,15 +10,9 @@
 <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.3.0/dist/maplibre-gl.css" rel="stylesheet" />
 <style>
   :root{
-    --bg: #0a0e14;
-    --panel: #10151d;
-    --line: #1e2733;
-    --text: #e8edf3;
-    --text-dim: #7d8a9a;
-    --accent: #4fb3ff;
-    --accent-glow: rgba(79,179,255,0.55);
-    --live-red: #ff4d5e;
-    --cctv-color: #ffb020;
+    --bg: #0a0e14; --panel: #10151d; --line: #1e2733; --text: #e8edf3;
+    --text-dim: #7d8a9a; --accent: #4fb3ff; --accent-glow: rgba(79,179,255,0.55);
+    --live-red: #ff4d5e; --cctv-color: #ffb020;
     --mono: 'SF Mono', 'Consolas', 'Menlo', monospace;
   }
   *{box-sizing:border-box;}
@@ -29,71 +23,45 @@
     overflow:hidden;
   }
   body, #map, .topbar, .style-switch, .add-btn, .count-pill,
-  .list-panel, .panel, .hint, .pick-hint {
-    -webkit-user-select: none;
-    user-select: none;
-  }
-  .list-head input,
-  .modal-box input,
-  .modal-box textarea,
-  .panel-body,
-  .code-result pre {
-    -webkit-user-select: text;
-    user-select: text;
+  .list-panel, .panel, .hint, .pick-hint { -webkit-user-select:none; user-select:none; }
+  .list-head input, .modal-box input, .modal-box textarea, .panel-body, .code-result pre {
+    -webkit-user-select:text; user-select:text;
   }
   #map{ position:absolute; inset:0; background:var(--bg); }
   .leaflet-container{ background:var(--bg); }
-  .dark-tiles{
-    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
-  }
+  .dark-tiles{ filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6); }
   .topbar{
     position:absolute; top:0; left:0; right:0; z-index:1000;
     display:flex; align-items:center; gap:10px;
     padding:16px 18px; pointer-events:none; flex-wrap:wrap;
   }
   .brand{ display:flex; flex-direction:column; gap:2px; pointer-events:auto; }
-  .brand .kicker{
-    font-family:var(--mono); font-size:10px; letter-spacing:0.18em;
-    color:var(--accent); text-transform:uppercase;
-  }
-  .brand .title{ font-size:15px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
-  .topbar-actions{
-    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-    margin-left:auto; pointer-events:auto;
-  }
+  .brand .kicker{ font-family:var(--mono); font-size:10px; letter-spacing:0.18em; color:var(--accent); text-transform:uppercase; }
+  .brand .title{ font-size:15px; font-weight:600; letter-spacing:-0.01em; }
+  .topbar-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; pointer-events:auto; }
   .count-pill{
-    background:var(--panel); border:1px solid var(--line);
-    border-radius:20px; padding:7px 14px;
+    background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:7px 14px;
     font-family:var(--mono); font-size:11px; color:var(--text-dim);
     display:flex; align-items:center; gap:6px; flex-shrink:0;
   }
   .count-pill b{ color:var(--text); font-weight:600; }
   .count-pill .dot{
     width:6px; height:6px; border-radius:50%; background:var(--live-red);
-    box-shadow:0 0 6px var(--live-red); animation: blink 1.6s ease-in-out infinite;
+    box-shadow:0 0 6px var(--live-red); animation:blink 1.6s ease-in-out infinite;
   }
   @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.25;} }
   .cam-marker{
-    width:20px; height:20px; border-radius:50%; background:var(--accent);
-    border:2px solid #0a0e14;
+    width:20px; height:20px; border-radius:50%; background:var(--accent); border:2px solid #0a0e14;
     box-shadow:0 0 0 4px var(--accent-glow), 0 0 14px var(--accent-glow);
-    cursor:pointer; transition: transform 0.15s ease;
+    cursor:pointer; transition:transform 0.15s ease;
   }
   .cam-marker:hover{ transform:scale(1.25); }
-  .cam-marker.active{
-    background:#ffb020;
-    box-shadow:0 0 0 5px rgba(255,176,32,0.5), 0 0 18px rgba(255,176,32,0.6);
-  }
+  .cam-marker.active{ background:#ffb020; box-shadow:0 0 0 5px rgba(255,176,32,0.5), 0 0 18px rgba(255,176,32,0.6); }
   .cctv-marker{
-    width:12px; height:12px; border-radius:50%; background:var(--cctv-color);
-    border:1.5px solid #0a0e14;
-    box-shadow:0 0 0 3px rgba(255,176,32,0.35), 0 0 8px rgba(255,176,32,0.5);
-    cursor:pointer;
+    width:12px; height:12px; border-radius:50%; background:var(--cctv-color); border:1.5px solid #0a0e14;
+    box-shadow:0 0 0 3px rgba(255,176,32,0.35); cursor:pointer;
   }
-  .cctv-marker.active{
-    background:#ff4d5e;
-    box-shadow:0 0 0 4px rgba(255,77,94,0.45), 0 0 10px rgba(255,77,94,0.6);
-  }
+  .cctv-marker.active{ background:#ff4d5e; }
   .marker-cluster-custom{
     background:rgba(255,176,32,0.25); border:1px solid rgba(255,176,32,0.6);
     border-radius:50%; display:flex; align-items:center; justify-content:center;
@@ -104,171 +72,116 @@
     display:flex; align-items:center; justify-content:center;
   }
   .leaflet-tooltip.cam-tip{
-    background:var(--panel); border:1px solid var(--line);
-    color:var(--text); font-size:12px; font-weight:600;
-    padding:6px 10px; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.45);
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    font-size:12px; font-weight:600; padding:6px 10px; border-radius:8px;
   }
   .leaflet-tooltip.cam-tip::before{ border-top-color:var(--line); }
   .panel{
-    position:absolute; z-index:1100; background:var(--panel);
-    border:1px solid var(--line); box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
-    display:flex; flex-direction:column;
-    transform: translateY(110%);
-    transition: transform 0.32s cubic-bezier(.2,.9,.25,1);
-    overflow-x:hidden;
+    position:absolute; z-index:1100; background:var(--panel); border:1px solid var(--line);
+    box-shadow:0 -8px 40px rgba(0,0,0,0.5); display:flex; flex-direction:column;
+    transform:translateY(110%); transition:transform 0.32s cubic-bezier(.2,.9,.25,1); overflow-x:hidden;
   }
-  @media (min-width: 720px){
-    .panel{
-      top:16px; right:16px; bottom:16px; width:380px;
-      min-width:280px; max-width:min(1600px, 96vw);
-      border-radius:14px; transform: translateX(120%);
-    }
-    .panel.open{ transform: translateX(0); }
+  @media (min-width:720px){
+    .panel{ top:16px; right:16px; bottom:16px; width:380px; min-width:280px;
+      max-width:min(1600px,96vw); border-radius:14px; transform:translateX(120%); }
+    .panel.open{ transform:translateX(0); }
   }
-  @media (max-width: 719px){
+  @media (max-width:719px){
     .panel{ left:0; right:0; bottom:0; height:58%; border-radius:16px 16px 0 0; }
-    .panel.open{ transform: translateY(0); }
+    .panel.open{ transform:translateY(0); }
     .panel-resize{ display:none; }
-    .topbar{
-      padding:10px 10px 8px; gap:6px; align-items:flex-start;
-    }
+    .topbar{ padding:10px 10px 8px; gap:6px; align-items:flex-start; }
     .brand .kicker{ font-size:9px; }
     .brand .title{ font-size:13px; }
-    .topbar-actions{
-      margin-left:0; width:100%;
-      flex-wrap:nowrap; overflow-x:auto; gap:6px;
-      -webkit-overflow-scrolling:touch; padding-bottom:2px;
-    }
+    .topbar-actions{ margin-left:0; width:100%; flex-wrap:nowrap; overflow-x:auto; gap:6px;
+      -webkit-overflow-scrolling:touch; padding-bottom:2px; }
     .topbar-actions::-webkit-scrollbar{ display:none; }
-    .add-btn{
-      padding:6px 10px; font-size:11px; border-radius:16px; gap:4px; flex-shrink:0;
-    }
+    .add-btn{ padding:6px 10px; font-size:11px; border-radius:16px; flex-shrink:0; }
     .count-pill{ padding:6px 10px; font-size:10px; }
     .leaflet-control-zoom{ margin-top:96px !important; }
-    .pick-hint{ top:88px; font-size:11px; padding:6px 12px; max-width:92vw; text-align:center; }
+    .pick-hint{ top:88px; font-size:11px; max-width:92vw; text-align:center; }
     .style-switch{ left:10px; bottom:16px; padding:2px; }
     .style-switch button{ padding:6px 10px; font-size:11px; }
   }
-  .panel-resize{
-    position:absolute; left:0; top:0; bottom:0; width:8px; cursor:ew-resize; z-index:20;
-  }
+  .panel-resize{ position:absolute; left:0; top:0; bottom:0; width:8px; cursor:ew-resize; z-index:20; }
   .panel-resize::after{
     content:''; position:absolute; left:2px; top:50%; transform:translateY(-50%);
     width:3px; height:40px; border-radius:2px; background:var(--line); opacity:0.6;
-    transition: background 0.15s, opacity 0.15s;
   }
-  .panel-resize:hover::after,
-  .panel.resizing .panel-resize::after{ background:var(--accent); opacity:1; }
+  .panel-resize:hover::after, .panel.resizing .panel-resize::after{ background:var(--accent); opacity:1; }
   .panel-head{
-    display:flex; align-items:center; gap:10px;
-    padding:14px 16px; border-bottom:1px solid var(--line); flex-shrink:0;
+    display:flex; align-items:center; gap:10px; padding:14px 16px;
+    border-bottom:1px solid var(--line); flex-shrink:0;
   }
   .live-badge{
-    display:flex; align-items:center; gap:5px;
-    background:rgba(255,77,94,0.12); border:1px solid rgba(255,77,94,0.35);
-    color:var(--live-red); font-family:var(--mono); font-size:10px;
-    font-weight:700; letter-spacing:0.08em; padding:3px 8px; border-radius:20px;
+    display:flex; align-items:center; gap:5px; background:rgba(255,77,94,0.12);
+    border:1px solid rgba(255,77,94,0.35); color:var(--live-red);
+    font-family:var(--mono); font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px;
   }
-  .live-badge .dot{
-    width:5px; height:5px; border-radius:50%; background:var(--live-red);
-    animation: blink 1.4s ease-in-out infinite;
-  }
-  .panel-title{
-    font-size:14px; font-weight:600; flex:1;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  }
-  .panel-close{
-    background:none; border:none; color:var(--text-dim);
-    font-size:18px; cursor:pointer; padding:4px 6px; line-height:1; border-radius:6px;
-  }
+  .live-badge .dot{ width:5px; height:5px; border-radius:50%; background:var(--live-red); animation:blink 1.4s ease-in-out infinite; }
+  .panel-title{ font-size:14px; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .panel-close{ background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer; padding:4px 6px; border-radius:6px; }
   .panel-close:hover{ background:var(--line); color:var(--text); }
-  .video-wrap{
-    position:relative; width:100%; aspect-ratio:16/9;
-    background:#000; flex-shrink:0; overflow:hidden;
-  }
-  .video-wrap iframe, .video-wrap video{
-    position:absolute; inset:0; width:100%; height:100%; border:0; max-width:100%;
-  }
+  .video-wrap{ position:relative; width:100%; aspect-ratio:16/9; background:#000; flex-shrink:0; overflow:hidden; }
+  .video-wrap iframe, .video-wrap video{ position:absolute; inset:0; width:100%; height:100%; border:0; }
   .video-footer{
-    display:none; align-items:center; justify-content:flex-end;
-    padding:8px 12px; border-top:1px solid var(--line); background:var(--panel); flex-shrink:0;
+    display:none; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 12px; border-top:1px solid var(--line); flex-shrink:0;
   }
+  .video-footer .viewers-label{ font-family:var(--mono); font-size:11px; color:var(--accent); }
   .video-footer a{
-    font-size:12px; font-weight:600; color:var(--accent);
-    text-decoration:none; padding:6px 12px; border-radius:8px;
-    border:1px solid rgba(79,179,255,0.35); background:rgba(79,179,255,0.08);
+    font-size:12px; font-weight:600; color:var(--accent); text-decoration:none;
+    padding:6px 12px; border-radius:8px; border:1px solid rgba(79,179,255,0.35);
+    background:rgba(79,179,255,0.08);
   }
-  .video-footer a:hover{ background:rgba(79,179,255,0.16); }
   .video-state{
-    position:absolute; inset:0;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:8px; color:var(--text-dim); font-size:12.5px; text-align:center; padding:14px;
-    background:#05070a;
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:8px; color:var(--text-dim); font-size:12.5px; background:#05070a;
   }
   .video-state .spin{
     width:22px; height:22px; border:2px solid var(--line); border-top-color:var(--accent);
-    border-radius:50%; animation: sp 0.7s linear infinite;
+    border-radius:50%; animation:sp 0.7s linear infinite;
   }
   @keyframes sp{ to{ transform:rotate(360deg); } }
-  .panel-body{
-    padding:14px 16px; overflow-y:auto; overflow-x:hidden;
-    font-size:12.5px; color:var(--text-dim); line-height:1.6;
-  }
+  .panel-body{ padding:14px 16px; overflow-y:auto; font-size:12.5px; color:var(--text-dim); line-height:1.6; }
   .panel-body .loc{ color:var(--text); font-weight:600; font-size:13px; margin-bottom:4px; }
-  .panel-body .src{
-    font-family:var(--mono); font-size:10.5px; color:#4d5a6a; margin-top:8px;
-    word-break:break-all; overflow-wrap:anywhere;
-  }
+  .panel-body .src{ font-family:var(--mono); font-size:10.5px; color:#4d5a6a; margin-top:8px; word-break:break-all; }
   .hint{
-    position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
-    z-index:900; pointer-events:none;
-    background:var(--panel); border:1px solid var(--line);
+    position:absolute; left:50%; bottom:20px; transform:translateX(-50%); z-index:900;
+    pointer-events:none; background:var(--panel); border:1px solid var(--line);
     padding:8px 14px; border-radius:20px; font-size:11.5px; color:var(--text-dim);
-    opacity:1; transition:opacity 0.4s ease;
   }
   .hint.hidden{ opacity:0; }
   .leaflet-control-zoom{ border:1px solid var(--line) !important; margin-top:70px !important; }
-  .leaflet-control-zoom a{
-    background:var(--panel) !important; color:var(--text) !important; border-color:var(--line) !important;
-  }
-  .leaflet-control-zoom a:hover{ background:var(--line) !important; }
-  .leaflet-control-attribution{
-    background:rgba(10,14,20,0.75) !important; color:var(--text-dim) !important; font-size:9px !important;
-  }
-  .leaflet-control-attribution a{ color:var(--accent) !important; }
+  .leaflet-control-zoom a{ background:var(--panel) !important; color:var(--text) !important; border-color:var(--line) !important; }
+  .leaflet-control-attribution{ background:rgba(10,14,20,0.75) !important; color:var(--text-dim) !important; font-size:9px !important; }
   .style-switch{
-    position:absolute; left:16px; bottom:20px; z-index:900;
-    display:flex; gap:2px; background:var(--panel); border:1px solid var(--line);
-    border-radius:12px; padding:3px; box-shadow:0 6px 24px rgba(0,0,0,0.4);
+    position:absolute; left:16px; bottom:20px; z-index:900; display:flex; gap:2px;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:3px;
   }
   .style-switch button{
-    appearance:none; border:none; background:transparent;
-    color:var(--text-dim); font-size:11.5px; font-weight:600;
-    padding:7px 12px; border-radius:9px; cursor:pointer; font-family:inherit;
-    letter-spacing:-0.01em; transition: background 0.15s ease, color 0.15s ease;
+    appearance:none; border:none; background:transparent; color:var(--text-dim);
+    font-size:11.5px; font-weight:600; padding:7px 12px; border-radius:9px; cursor:pointer; font-family:inherit;
   }
-  .style-switch button:hover{ color:var(--text); }
   .style-switch button.active{ background:var(--accent); color:#0a0e14; }
   .add-btn{
-    pointer-events:auto; display:flex; align-items:center; gap:6px;
-    background:var(--panel); border:1px solid var(--line);
-    color:var(--text); font-size:12px; font-weight:600;
-    padding:8px 14px; border-radius:20px; cursor:pointer; font-family:inherit;
+    display:flex; align-items:center; gap:6px; background:var(--panel); border:1px solid var(--line);
+    color:var(--text); font-size:12px; font-weight:600; padding:8px 14px; border-radius:20px;
+    cursor:pointer; font-family:inherit;
   }
   .add-btn:hover{ border-color:var(--accent); color:var(--accent); }
-  .add-btn.active{ background:var(--accent); color:#0a0e14; border-color:var(--accent); }
-  #cctvBtn.active{ background:var(--cctv-color); color:#0a0e14; border-color:var(--cctv-color); }
+  .add-btn.active{ background:var(--accent); color:#0a0e14; }
+  #cctvBtn.active{ background:var(--cctv-color); color:#0a0e14; }
   #map.picking{ cursor:crosshair; }
   .pick-hint{
-    position:absolute; top:64px; left:50%; transform:translateX(-50%);
-    z-index:950; background:var(--accent); color:#0a0e14;
-    font-size:12px; font-weight:600; padding:8px 16px; border-radius:20px;
-    display:none; box-shadow:0 6px 20px rgba(79,179,255,0.35);
+    position:absolute; top:64px; left:50%; transform:translateX(-50%); z-index:950;
+    background:var(--accent); color:#0a0e14; font-size:12px; font-weight:600;
+    padding:8px 16px; border-radius:20px; display:none;
   }
   .pick-hint.show{ display:block; }
   .temp-marker{
     width:22px; height:22px; border-radius:50%; background:#ff8a1e; border:2px solid #0a0e14;
-    box-shadow:0 0 0 5px rgba(255,138,30,0.45), 0 0 16px rgba(255,138,30,0.6);
+    box-shadow:0 0 0 5px rgba(255,138,30,0.45);
   }
   .modal-overlay{
     position:absolute; inset:0; z-index:1300; background:rgba(5,7,10,0.55);
@@ -277,80 +190,67 @@
   .modal-overlay.show{ display:flex; }
   .modal-box{
     width:100%; max-width:380px; background:var(--panel); border:1px solid var(--line);
-    border-radius:14px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    border-radius:14px; padding:18px;
   }
-  .modal-box h3{ margin:0 0 4px; font-size:15px; color:var(--text); }
+  .modal-box h3{ margin:0 0 4px; font-size:15px; }
   .modal-box .coord{ font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:14px; }
   .field{ margin-bottom:12px; }
   .field label{ display:block; font-size:11.5px; color:var(--text-dim); margin-bottom:5px; }
   .field input, .field textarea{
-    width:100%; background:#0a0e14; border:1px solid var(--line);
-    color:var(--text); font-size:13px; padding:9px 10px; border-radius:8px;
-    font-family:inherit; resize:none;
+    width:100%; background:#0a0e14; border:1px solid var(--line); color:var(--text);
+    font-size:13px; padding:9px 10px; border-radius:8px; font-family:inherit; resize:none;
   }
-  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--accent); }
   .field .err{ color:var(--live-red); font-size:11px; margin-top:5px; display:none; }
   .field .err.show{ display:block; }
-  .modal-actions{ display:flex; gap:8px; margin-top:4px; }
-  .modal-actions button{
-    flex:1; padding:10px; border-radius:8px; border:none;
-    font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
-  }
+  .modal-actions{ display:flex; gap:8px; }
+  .modal-actions button{ flex:1; padding:10px; border-radius:8px; border:none; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
   .btn-cancel{ background:var(--line); color:var(--text-dim); }
-  .btn-cancel:hover{ color:var(--text); }
   .btn-generate{ background:var(--accent); color:#0a0e14; }
-  .btn-generate:hover{ filter:brightness(1.08); }
   .code-result{ margin-top:14px; display:none; }
   .code-result.show{ display:block; }
   .code-result pre{
-    background:#05070a; border:1px solid var(--line); border-radius:8px;
-    padding:10px; font-family:var(--mono); font-size:10.5px; color:#9fd6ff;
-    white-space:pre-wrap; word-break:break-all; margin:0 0 8px;
-    max-height:120px; overflow-y:auto;
+    background:#05070a; border:1px solid var(--line); border-radius:8px; padding:10px;
+    font-family:var(--mono); font-size:10.5px; color:#9fd6ff; white-space:pre-wrap; word-break:break-all;
+    max-height:120px; overflow-y:auto; margin:0 0 8px;
   }
   .btn-copy{
-    width:100%; background:transparent; border:1px solid var(--accent);
-    color:var(--accent); padding:9px; border-radius:8px; font-size:12.5px;
-    font-weight:600; cursor:pointer; font-family:inherit;
+    width:100%; background:transparent; border:1px solid var(--accent); color:var(--accent);
+    padding:9px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;
   }
-  .btn-copy:hover{ background:rgba(79,179,255,0.1); }
-  .btn-copy.copied{ background:var(--accent); color:#0a0e14; }
   .list-panel{
     position:absolute; z-index:1150; background:var(--panel); border:1px solid var(--line);
-    display:flex; flex-direction:column; box-shadow: 8px 0 40px rgba(0,0,0,0.5);
-    transform: translateX(-110%); transition: transform 0.3s cubic-bezier(.2,.9,.25,1);
+    display:flex; flex-direction:column; transform:translateX(-110%);
+    transition:transform 0.3s cubic-bezier(.2,.9,.25,1); box-shadow:8px 0 40px rgba(0,0,0,0.5);
   }
-  @media (min-width: 720px){
+  @media (min-width:720px){
     .list-panel{ top:16px; left:16px; bottom:16px; width:300px; border-radius:14px; }
     .list-panel.open{ transform:translateX(0); }
   }
-  @media (max-width: 719px){
+  @media (max-width:719px){
     .list-panel{ top:0; left:0; bottom:0; width:82%; max-width:320px; border-radius:0 16px 16px 0; }
     .list-panel.open{ transform:translateX(0); }
   }
-  .list-head{
-    display:flex; align-items:center; gap:8px;
-    padding:14px 14px; border-bottom:1px solid var(--line); flex-shrink:0;
-  }
+  .list-head{ display:flex; flex-direction:column; gap:8px; padding:12px 14px; border-bottom:1px solid var(--line); flex-shrink:0; }
+  .list-head-row{ display:flex; align-items:center; gap:8px; width:100%; }
   .list-head input{
-    flex:1; background:#0a0e14; border:1px solid var(--line);
-    color:var(--text); font-size:13px; padding:8px 10px; border-radius:8px; font-family:inherit;
+    flex:1; background:#0a0e14; border:1px solid var(--line); color:var(--text);
+    font-size:13px; padding:8px 10px; border-radius:8px; font-family:inherit;
   }
-  .list-head input:focus{ outline:none; border-color:var(--accent); }
+  .list-meta{ font-family:var(--mono); font-size:10px; color:var(--text-dim); line-height:1.4; }
+  .list-meta.ok{ color:#6dce9a; }
+  .list-meta.err{ color:var(--live-red); }
   .list-items{ list-style:none; margin:0; padding:6px; overflow-y:auto; flex:1; }
   .list-items li{
-    padding:9px 10px; border-radius:8px; cursor:pointer;
-    font-size:13px; color:var(--text); display:flex; align-items:center; gap:8px;
+    padding:9px 10px; border-radius:8px; cursor:pointer; font-size:13px;
+    display:flex; align-items:center; gap:8px;
   }
   .list-items li:hover{ background:var(--line); }
-  .list-items li .tag{
-    width:7px; height:7px; border-radius:50%; flex-shrink:0; background:var(--accent);
-  }
+  .list-items li .tag{ width:7px; height:7px; border-radius:50%; flex-shrink:0; background:var(--accent); }
   .list-items li.is-cctv .tag{ background:var(--cctv-color); }
   .list-items li .nm{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .list-items li .viewers{
-    flex-shrink:0; font-family:var(--mono); font-size:11px;
-    color:var(--text-dim); min-width:3.2em; text-align:right;
+    flex-shrink:0; font-family:var(--mono); font-size:11px; color:var(--text-dim);
+    min-width:3.2em; text-align:right;
   }
   .list-items li .viewers.has-count{ color:var(--accent); }
   .list-empty{ padding:16px 12px; color:var(--text-dim); font-size:12px; text-align:center; }
@@ -370,7 +270,7 @@
     <div class="count-pill"><span class="dot"></span><b id="camCount">0</b></div>
   </div>
 </div>
-<div class="pick-hint" id="pickHint">지도를 클릭해 카메라 위치를 선택하세요 (취소: 버튼 다시 클릭)</div>
+<div class="pick-hint" id="pickHint">지도를 클릭해 카메라 위치를 선택하세요</div>
 <div class="hint" id="hint">지도 위 점을 눌러보세요</div>
 <div class="style-switch" id="styleSwitch">
   <button data-style="dark" class="active">다크</button>
@@ -379,8 +279,11 @@
 </div>
 <div class="list-panel" id="listPanel">
   <div class="list-head">
-    <input type="text" id="listSearch" placeholder="카메라 이름 검색">
-    <button class="panel-close" id="listClose">✕</button>
+    <div class="list-head-row">
+      <input type="text" id="listSearch" placeholder="카메라 이름 검색">
+      <button class="panel-close" id="listClose">✕</button>
+    </div>
+    <div class="list-meta" id="listMeta">Tomarigi 로딩…</div>
   </div>
   <ul class="list-items" id="listItems"></ul>
 </div>
@@ -393,6 +296,7 @@
   </div>
   <div class="video-wrap" id="videoWrap"></div>
   <div class="video-footer" id="videoFooter">
+    <span class="viewers-label" id="panelViewers"></span>
     <a id="openTabBtn" href="#" target="_blank" rel="noopener noreferrer">새 탭에서 열기 ↗</a>
   </div>
   <div class="panel-body">
@@ -411,12 +315,12 @@
     </div>
     <div class="field">
       <label>영상 링크</label>
-      <input type="text" id="fUrl" placeholder="유튜브 링크 또는 라이브 리다이렉트 링크(https://...)">
-      <div class="err" id="fUrlErr">링크를 인식하지 못했어요. http(s)로 시작하는 주소인지 확인해주세요.</div>
+      <input type="text" id="fUrl" placeholder="유튜브 또는 live-redirect">
+      <div class="err" id="fUrlErr">링크를 인식하지 못했어요.</div>
     </div>
     <div class="field">
       <label>설명 (선택)</label>
-      <textarea id="fDesc" rows="2" placeholder="예: 해운대 해변가 실시간 화면"></textarea>
+      <textarea id="fDesc" rows="2"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" id="modalCancel">취소</button>
@@ -437,12 +341,118 @@
 <script>
   const MAPTILER_KEY = 'EhogGAwYASE0hk398mb8';
   const YOUTUBE_API_KEY = 'AIzaSyBbGHS7EXSuj1t9V187FIr1flIfDMec3xA';
-
-  // 목록에서 live-redirect search 사용 안 함 (할당량 폭주 방지)
-  // videoId 있는 캠만 videos.list 로 시청자 수 조회 (50개당 1유닛)
+  const TOMARIGI_URL = 'https://tomarigi.me/api/japan-map-data';
   const VIEWERS_SS_KEY = 'livecam-viewers-v1';
   const VIEWER_MEM_TTL = 60_000;
 
+  // tomarigiId → spot (YouTube만, Windy 제외)
+  const tomarigiById = new Map();
+  let tomarigiReady = false;
+  let tomarigiMsg = 'Tomarigi 로딩…';
+
+  function isUsableTomarigiSpot(s) {
+    if (!s || !s.id) return false;
+    if (s.media_type === 'windy') return false;
+    // YouTube video_id 있는 것만 사용
+    return !!(s.video_id);
+  }
+
+  function resolveTomarigi(cam) {
+    if (!cam.tomarigiId || !tomarigiById.has(cam.tomarigiId)) return null;
+    return tomarigiById.get(cam.tomarigiId);
+  }
+
+  function formatViewers(n) {
+    if (n == null || n === '') return null;
+    const num = Number(n);
+    if (!Number.isFinite(num)) return null;
+    return num.toLocaleString('ko-KR') + '명';
+  }
+
+  function getCamViewers(cam) {
+    const spot = resolveTomarigi(cam);
+    if (spot && spot.concurrent_viewers != null) return Number(spot.concurrent_viewers);
+    return null;
+  }
+
+  /** 재생 소스: tomarigi video_id 우선 → cam.videoId → externalUrl */
+  function resolvePlayable(cam) {
+    const spot = resolveTomarigi(cam);
+    if (spot && spot.video_id) {
+      return {
+        videoId: spot.video_id,
+        tabUrl: 'https://www.youtube.com/watch?v=' + spot.video_id,
+        sourceLabel: 'tomarigi / yt ' + spot.video_id,
+        viewers: spot.concurrent_viewers != null ? Number(spot.concurrent_viewers) : null,
+        title: spot.name || cam.name,
+      };
+    }
+    if (cam.videoId) {
+      return {
+        videoId: cam.videoId,
+        tabUrl: 'https://www.youtube.com/watch?v=' + cam.videoId,
+        sourceLabel: 'youtube.com/watch?v=' + cam.videoId,
+        viewers: null,
+        title: cam.name,
+      };
+    }
+    if (cam.externalUrl) {
+      let embedUrl = cam.externalUrl;
+      if (embedUrl.includes('live-redirect') && !/[?&]embed=/.test(embedUrl)) {
+        embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'embed=1';
+      }
+      let tabUrl = cam.externalUrl;
+      try {
+        const u = new URL(cam.externalUrl);
+        u.searchParams.delete('embed');
+        tabUrl = u.toString();
+      } catch (_) {}
+      return {
+        embedUrl,
+        tabUrl,
+        sourceLabel: tabUrl,
+        viewers: null,
+        title: cam.name,
+      };
+    }
+    return null;
+  }
+
+  async function loadTomarigi() {
+    const meta = document.getElementById('listMeta');
+    try {
+      const res = await fetch(TOMARIGI_URL, { mode: 'cors' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const spots = data.spots || [];
+      tomarigiById.clear();
+      let yt = 0, withV = 0;
+      for (const s of spots) {
+        if (!isUsableTomarigiSpot(s)) continue;
+        tomarigiById.set(s.id, s);
+        yt++;
+        if (s.concurrent_viewers != null) withV++;
+      }
+      tomarigiReady = true;
+      tomarigiMsg = `Tomarigi YT ${yt} · 시청자 ${withV}`;
+      meta.textContent = tomarigiMsg;
+      meta.className = 'list-meta ok';
+      console.log('[Tomarigi]', yt, 'youtube spots');
+      if (listPanel.classList.contains('open')) renderList(listSearch.value);
+    } catch (e) {
+      tomarigiReady = false;
+      tomarigiMsg = 'Tomarigi 실패: ' + (e.message || 'CORS');
+      meta.textContent = tomarigiMsg;
+      meta.className = 'list-meta err';
+      console.warn('[Tomarigi]', e);
+    }
+  }
+
+  /**
+   * tomarigiId 예시:
+   * { name: "캠", lat, lng, tomarigiId: "00344c8f-7c77-4194-83d3-683565cf4d87", desc: "..." }
+   * → video_id·시청자 자동, 임베드/목록/팝업 사용
+   */
   const cams = [
     // ===== 부산 =====
     { name: "해운대 해수욕장", lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", desc: "해운대 해변가 실시간 화면 예시" },
@@ -473,13 +483,15 @@
     { name: "반포대교 공원길", lat: 37.513487, lng: 126.996953, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Live_HanGang&keyword=한강", desc: "반포대교 공원길" },
     { name: "동호대교", lat: 37.536861, lng: 127.020525, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@seoulvibes_live&keyword=로파이", desc: "동호대교" },
     // ===== 오사카 =====
+    // 예시: tomarigiId 붙이면 video_id·시청자 자동 (실제 UUID로 교체)
+    // { name: "오사카성", lat: 34.687413, lng: 135.525804, tomarigiId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", desc: "오사카성" },
     { name: "오사카성", lat: 34.687413, lng: 135.525804, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tvosakanews&keyword=Castle", desc: "오사카성" },
     { name: "오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", desc: "에비스바시 다리" },
     { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", desc: "에비스바시 상점가" },
     { name: "글리코상", lat: 34.669072, lng: 135.501305, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@mbsnews&keyword=Dotonbori", desc: "글리코상" },
     { name: "츠텐카쿠", lat: 34.652631, lng: 135.506382, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ebisuhotel&keyword=osaka", desc: "츠텐카쿠" },
     { name: "우메다 스카이 빌딩 공중정원", lat: 34.698565, lng: 135.490383, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sports_mainichi&keyword=Umeda", desc: "우메다" },
-    // ===== 도쿄(신주쿠) =====
+    // ===== 도쿄 =====
     { name: "가부키초 이치반가이", lat: 35.693869, lng: 139.701031, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-1&keyword=24", desc: "가부키초 이치반가이" },
     { name: "가부키초 1번가", lat: 35.6940837, lng: 139.7011244, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-2&keyword=Channel", desc: "가부키초 1번가" },
     { name: "가부키초 1번가 2", lat: 35.694278, lng: 139.701159, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E4%B8%80%E7%95%AA%E8%A1%97", desc: "가부키초 이치반가이 라이브" },
@@ -487,34 +499,26 @@
     { name: "시네시티 광장(토요코)", lat: 35.695513, lng: 139.701671, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KabukichoLiveCamera&keyword=歌舞伎町", desc: "시네시티 광장" },
   ];
 
-  const map = L.map('map', {
-    zoomControl: true, attributionControl: true, minZoom: 3, maxZoom: 18,
-  });
-
+  const map = L.map('map', { zoomControl: true, attributionControl: true, minZoom: 3, maxZoom: 18 });
   const styles = {
     dark: {
       type: 'raster',
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      options: {
-        attribution: '&copy; OpenStreetMap contributors', subdomains: 'abc',
-        maxZoom: 20, maxNativeZoom: 19, className: 'dark-tiles'
-      },
+      options: { attribution: '&copy; OSM', subdomains: 'abc', maxZoom: 20, maxNativeZoom: 19, className: 'dark-tiles' },
       mapMaxZoom: 19
     },
     clean: { type: 'maptiler-raster', mapMaxZoom: 19 },
     satellite: {
       type: 'raster',
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      options: { attribution: 'Imagery &copy; Esri', maxZoom: 20, maxNativeZoom: 19 },
+      options: { attribution: 'Esri', maxZoom: 20, maxNativeZoom: 19 },
       mapMaxZoom: 19
     }
   };
-
   function createCartoLayer() {
-    return L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      { attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }
-    );
+    return L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: 'CARTO', subdomains: 'abcd', maxZoom: 20
+    });
   }
   function createStyleLayer(name) {
     const s = styles[name];
@@ -522,23 +526,21 @@
       if (!MAPTILER_KEY || typeof L.maplibreGL !== 'function') return createCartoLayer();
       const gl = L.maplibreGL({
         style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
-        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OSM</a>',
+        attribution: 'MapTiler OSM',
       });
       gl.on('add', () => {
         const mMap = gl.getMaplibreMap();
-        const applyLang = () => { if (typeof mMap.setLanguage === 'function') mMap.setLanguage('ko'); };
-        if (mMap.isStyleLoaded && mMap.isStyleLoaded()) applyLang();
-        else mMap.once('load', applyLang);
+        const apply = () => { if (typeof mMap.setLanguage === 'function') mMap.setLanguage('ko'); };
+        if (mMap.isStyleLoaded && mMap.isStyleLoaded()) apply();
+        else mMap.once('load', apply);
       });
       return gl;
     }
     return L.tileLayer(s.url, s.options);
   }
-
   let tileLayer = createStyleLayer('dark').addTo(map);
   let currentStyle = 'dark';
   map.setMaxZoom(styles.dark.mapMaxZoom);
-
   function switchStyle(name) {
     if (name === currentStyle) return;
     document.querySelectorAll('#styleSwitch button').forEach(b =>
@@ -567,80 +569,80 @@
   const camMarkers = new Map();
   const viewerCache = new Map();
 
-  function stopVideo(){
-    if(activeHls){ try{ activeHls.destroy(); }catch(e){} activeHls = null; }
+  function stopVideo() {
+    if (activeHls) { try { activeHls.destroy(); } catch (e) {} activeHls = null; }
     document.getElementById('videoWrap').innerHTML = '';
   }
-  function stripEmbed(u){
-    try{
-      const url = new URL(u);
-      url.searchParams.delete('embed');
-      return url.toString();
-    }catch(_){
-      return u.replace(/([?&])embed=1(&|$)/, (_, p, e) => e ? p : '').replace(/[?&]$/, '');
-    }
-  }
-  function openCam(cam, marker){
-    if(activeMarker) activeMarker.getElement()?.classList.remove('active');
+
+  function openCam(cam, marker) {
+    if (activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = marker;
     marker.getElement()?.classList.add('active');
     stopVideo();
-    document.getElementById('panelTitle').textContent = cam.name;
+
+    const play = resolvePlayable(cam);
+    const viewersNum = getCamViewers(cam) != null ? getCamViewers(cam) : (play && play.viewers);
+    const viewersText = formatViewers(viewersNum);
+
+    document.getElementById('panelTitle').textContent = (play && play.title) || cam.name;
     document.getElementById('panelLoc').textContent = cam.name;
-    document.getElementById('panelDesc').textContent = cam.desc;
+    document.getElementById('panelDesc').textContent = cam.desc || '';
+    document.getElementById('panelViewers').textContent = viewersText ? ('시청 ' + viewersText) : '';
+
     const videoWrap = document.getElementById('videoWrap');
     const panelSrc = document.getElementById('panelSrc');
     const videoFooter = document.getElementById('videoFooter');
     const openTabBtn = document.getElementById('openTabBtn');
-    if(cam.videoId){
-      panelSrc.textContent = `source: youtube.com/watch?v=${cam.videoId}`;
+
+    if (!play) {
+      videoWrap.innerHTML = '<div class="video-state">재생 정보 없음</div>';
+      videoFooter.style.display = 'none';
+      panelSrc.textContent = '';
+    } else if (play.videoId) {
+      panelSrc.textContent = 'source: ' + play.sourceLabel;
       videoWrap.innerHTML =
-        `<iframe src="https://www.youtube.com/embed/${cam.videoId}?autoplay=1&mute=1"
+        `<iframe src="https://www.youtube.com/embed/${play.videoId}?autoplay=1&mute=1"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen></iframe>`;
-      openTabBtn.href = `https://www.youtube.com/watch?v=${cam.videoId}`;
+      openTabBtn.href = play.tabUrl;
       videoFooter.style.display = 'flex';
-    } else if(cam.externalUrl){
-      let embedUrl = cam.externalUrl;
-      if(embedUrl.includes('live-redirect') && !/[?&]embed=/.test(embedUrl)){
-        embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'embed=1';
-      }
-      const tabUrl = stripEmbed(cam.externalUrl);
-      panelSrc.textContent = `source: ${tabUrl}`;
-      videoWrap.innerHTML = `
-        <iframe id="extFrame" src="${embedUrl}"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen
+    } else if (play.embedUrl) {
+      panelSrc.textContent = 'source: ' + play.sourceLabel;
+      videoWrap.innerHTML =
+        `<iframe src="${play.embedUrl}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen
           style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#000"></iframe>`;
-      openTabBtn.href = tabUrl;
+      openTabBtn.href = play.tabUrl;
       videoFooter.style.display = 'flex';
     } else {
+      videoWrap.innerHTML = '<div class="video-state">재생 불가</div>';
       videoFooter.style.display = 'none';
     }
+
     panel.classList.add('open');
     hint.classList.add('hidden');
   }
-  function closeCam(){
+
+  function closeCam() {
     panel.classList.remove('open');
     stopVideo();
     document.getElementById('videoFooter').style.display = 'none';
-    if(activeMarker) activeMarker.getElement()?.classList.remove('active');
+    if (activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = null;
   }
   document.getElementById('panelClose').addEventListener('click', closeCam);
 
   const camCountEl = document.getElementById('camCount');
-  function addCamMarker(cam){
-    const icon = L.divIcon({ className: 'cam-marker', iconSize: [20,20] });
+  function addCamMarker(cam) {
+    const icon = L.divIcon({ className: 'cam-marker', iconSize: [20, 20] });
     const marker = L.marker([cam.lat, cam.lng], { icon }).addTo(map);
     marker.bindTooltip(cam.name, { direction: 'top', offset: [0, -12], className: 'cam-tip', opacity: 1 });
     marker.on('click', () => openCam(cam, marker));
     camMarkers.set(cam, marker);
     return marker;
   }
-  function updateCount(){
+  function updateCount() {
     camCountEl.textContent = cams.length + (cctvOn ? cctvLayer.getLayers().length : 0);
-    if(listPanel.classList.contains('open')) renderList(listSearch.value);
+    if (listPanel.classList.contains('open')) renderList(listSearch.value);
   }
   cams.forEach(addCamMarker);
   (function fitAllCams() {
@@ -648,126 +650,111 @@
     map.fitBounds(L.latLngBounds(cams.map(c => [c.lat, c.lng])).pad(0.2), { maxZoom: 7, animate: false });
   })();
 
+  // ITS
   const ITS_API_KEY = 'f9565bfc1f2b4a68a26c48120f5c27b3';
   const ITS_ENDPOINT = 'https://openapi.its.go.kr:9443/cctvInfo';
   const ITS_MIN_ZOOM = 11;
-  let cctvOn = false;
-  let cctvLoading = false;
+  let cctvOn = false, cctvLoading = false;
   const cctvLayer = L.markerClusterGroup({
-    maxClusterRadius: 50,
-    disableClusteringAtZoom: 15,
+    maxClusterRadius: 50, disableClusteringAtZoom: 15,
     iconCreateFunction: cluster => L.divIcon({
-      html: `<span>${cluster.getChildCount()}</span>`,
-      className: 'marker-cluster-custom', iconSize: [36, 36],
+      html: `<span>${cluster.getChildCount()}</span>`, className: 'marker-cluster-custom', iconSize: [36, 36],
     }),
   });
-  function itsUrl(bounds){
+  function itsUrl(bounds) {
     const p = new URLSearchParams({
       apiKey: ITS_API_KEY, type: 'all', cctvType: '1',
       minX: bounds.getWest(), maxX: bounds.getEast(),
       minY: bounds.getSouth(), maxY: bounds.getNorth(), getType: 'json',
     });
-    return `${ITS_ENDPOINT}?${p.toString()}`;
+    return `${ITS_ENDPOINT}?${p}`;
   }
-  async function loadCctvInView(){
-    if(!cctvOn || cctvLoading) return;
-    if(map.getZoom() < ITS_MIN_ZOOM){ cctvLayer.clearLayers(); updateCount(); return; }
+  async function loadCctvInView() {
+    if (!cctvOn || cctvLoading) return;
+    if (map.getZoom() < ITS_MIN_ZOOM) { cctvLayer.clearLayers(); updateCount(); return; }
     cctvLoading = true;
-    try{
+    try {
       const res = await fetch(itsUrl(map.getBounds()));
-      if(!res.ok) throw new Error('http ' + res.status);
+      if (!res.ok) throw new Error('http ' + res.status);
       const data = await res.json();
       const list = (data.response && data.response.data) || [];
       cctvLayer.clearLayers();
       list.forEach(c => {
-        if(!c.coordy || !c.coordx) return;
-        const icon = L.divIcon({ className: 'cctv-marker', iconSize: [12,12] });
-        const marker = L.marker([c.coordy, c.coordx], { icon });
+        if (!c.coordy || !c.coordx) return;
+        const marker = L.marker([c.coordy, c.coordx], {
+          icon: L.divIcon({ className: 'cctv-marker', iconSize: [12, 12] })
+        });
         marker.bindTooltip(c.cctvname || 'CCTV', { direction: 'top', offset: [0, -8], className: 'cam-tip', opacity: 1 });
         marker.on('click', () => openCctv(c, marker));
         cctvLayer.addLayer(marker);
       });
       updateCount();
-    }catch(e){ console.warn('ITS CCTV 로드 실패:', e.message); }
-    finally{ cctvLoading = false; }
+    } catch (e) { console.warn('ITS', e.message); }
+    finally { cctvLoading = false; }
   }
-  function openCctv(c, marker){
-    if(activeMarker) activeMarker.getElement()?.classList.remove('active');
+  function openCctv(c, marker) {
+    if (activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = marker;
     marker.getElement()?.classList.add('active');
     stopVideo();
     document.getElementById('videoFooter').style.display = 'none';
     document.getElementById('panelTitle').textContent = c.cctvname || 'CCTV';
     document.getElementById('panelLoc').textContent = c.cctvname || '-';
-    document.getElementById('panelDesc').textContent =
-      (c.roadsectionid ? `구간: ${c.roadsectionid}` : '국가교통정보센터 실시간 CCTV');
-    document.getElementById('panelSrc').textContent = 'source: 국가교통정보센터(ITS)';
+    document.getElementById('panelDesc').textContent = c.roadsectionid ? `구간: ${c.roadsectionid}` : 'ITS CCTV';
+    document.getElementById('panelSrc').textContent = 'source: ITS';
+    document.getElementById('panelViewers').textContent = '';
     const videoWrap = document.getElementById('videoWrap');
     videoWrap.innerHTML = '<div class="video-state" id="cctvState"><div class="spin"></div><div>불러오는 중…</div></div>';
     let streamUrl = c.cctvurl || '';
     if (streamUrl.startsWith('http://')) streamUrl = 'https://' + streamUrl.slice(7);
-    if(!streamUrl){
-      videoWrap.innerHTML = '<div class="video-state">이 카메라는 스트림 주소가 없습니다</div>';
-    }else{
+    if (!streamUrl) {
+      videoWrap.innerHTML = '<div class="video-state">스트림 없음</div>';
+    } else {
       videoWrap.innerHTML += '<video id="cctvVideo" muted playsinline></video>';
       const video = document.getElementById('cctvVideo');
       const state = document.getElementById('cctvState');
-      if(window.Hls && Hls.isSupported()){
+      if (window.Hls && Hls.isSupported()) {
         activeHls = new Hls();
         activeHls.loadSource(streamUrl);
         activeHls.attachMedia(video);
         activeHls.on(Hls.Events.MANIFEST_PARSED, () => { state?.remove(); video.play().catch(()=>{}); });
         activeHls.on(Hls.Events.ERROR, (_, d) => {
-          if(d.fatal) videoWrap.innerHTML = '<div class="video-state">이 카메라는 지금 재생할 수 없습니다<br><span style="font-size:11px;opacity:.7">HTTPS 미지원 또는 스트림 오류</span></div>';
+          if (d.fatal) videoWrap.innerHTML = '<div class="video-state">재생 불가</div>';
         });
-      }else if(video.canPlayType('application/vnd.apple.mpegurl')){
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = streamUrl;
         video.addEventListener('loadedmetadata', () => state?.remove());
         video.play().catch(()=>{});
-      }else{
-        videoWrap.innerHTML = '<div class="video-state">이 브라우저에서는 재생할 수 없습니다</div>';
+      } else {
+        videoWrap.innerHTML = '<div class="video-state">브라우저 미지원</div>';
       }
     }
     panel.classList.add('open');
     hint.classList.add('hidden');
   }
-  function toggleCctv(){
+  document.getElementById('cctvBtn').addEventListener('click', () => {
     cctvOn = !cctvOn;
     document.getElementById('cctvBtn').classList.toggle('active', cctvOn);
-    if(cctvOn){ map.addLayer(cctvLayer); loadCctvInView(); }
+    if (cctvOn) { map.addLayer(cctvLayer); loadCctvInView(); }
     else { map.removeLayer(cctvLayer); cctvLayer.clearLayers(); updateCount(); }
-  }
-  document.getElementById('cctvBtn').addEventListener('click', toggleCctv);
-  map.on('moveend', () => { if(cctvOn) loadCctvInView(); });
+  });
+  map.on('moveend', () => { if (cctvOn) loadCctvInView(); });
 
   const listPanel = document.getElementById('listPanel');
   const listItems = document.getElementById('listItems');
   const listSearch = document.getElementById('listSearch');
 
-  function formatViewers(n) {
-    if (n == null || n === '') return '-';
-    const num = Number(n);
-    if (!Number.isFinite(num)) return '-';
-    return num.toLocaleString('ko-KR') + '명';
-  }
   function camCacheKey(cam) {
-    return cam.videoId || cam.externalUrl || cam.name;
+    return cam.tomarigiId || cam.videoId || cam.externalUrl || cam.name;
   }
   function loadViewersFromSS() {
     try { return JSON.parse(sessionStorage.getItem(VIEWERS_SS_KEY) || '{}'); }
     catch (_) { return {}; }
   }
   function saveViewersToSS(obj) {
-    try { sessionStorage.setItem(VIEWERS_SS_KEY, JSON.stringify(obj)); }
-    catch (_) {}
+    try { sessionStorage.setItem(VIEWERS_SS_KEY, JSON.stringify(obj)); } catch (_) {}
   }
 
-  /** videoId만 사용 — search 없음 (100캠+ 대비) */
-  function getListVideoId(cam) {
-    return cam.videoId || null;
-  }
-
-  /** videos.list 일괄 (최대 50개 = 1유닛) */
   async function fetchConcurrentViewersBatch(videoIds) {
     const ids = [...new Set(videoIds.filter(Boolean))];
     const result = {};
@@ -802,92 +789,115 @@
           }
         }
       } catch (e) {
-        console.warn('시청자 일괄 조회 실패', e.message);
+        console.warn('시청자 일괄 실패', e.message);
         chunk.forEach(id => { if (!(id in result)) result[id] = null; });
       }
     }
     return result;
   }
 
-  async function renderList(filterText){
+  async function renderList(filterText) {
     const q = (filterText || '').trim().toLowerCase();
     listItems.innerHTML = '';
-    let count = 0;
     const filtered = cams.filter(c => !q || c.name.toLowerCase().includes(q));
     const ss = loadViewersFromSS();
+    let matchedT = 0;
 
+    // 1) 행 그리기 — Tomarigi / 캐시 즉시
     for (const c of filtered) {
       const li = document.createElement('li');
+      const fromT = getCamViewers(c);
       const key = camCacheKey(c);
-      const cached = ss[key];
-      const initial = (cached != null && cached !== '') ? formatViewers(cached) : (c.videoId ? '…' : '-');
+      let initial = '-';
+      let has = false;
+      if (fromT != null) {
+        initial = formatViewers(fromT);
+        has = true;
+        matchedT++;
+      } else if (ss[key] != null && ss[key] !== '') {
+        initial = formatViewers(ss[key]);
+        has = true;
+      } else if (c.videoId && !c.tomarigiId) {
+        initial = '…';
+      }
       li.innerHTML =
-        `<span class="tag"></span>` +
-        `<span class="nm">${c.name}</span>` +
-        `<span class="viewers${cached != null && cached !== '' ? ' has-count' : ''}">${initial}</span>`;
+        `<span class="tag"></span><span class="nm">${c.name}</span>` +
+        `<span class="viewers${has ? ' has-count' : ''}">${initial}</span>`;
       li.addEventListener('click', () => {
         map.flyTo([c.lat, c.lng], 15, { duration: 0.6 });
         const marker = camMarkers.get(c);
-        if(marker) openCam(c, marker);
+        if (marker) openCam(c, marker);
         listPanel.classList.remove('open');
       });
       listItems.appendChild(li);
-      count++;
     }
 
-    if(cctvOn){
+    if (cctvOn) {
       cctvLayer.eachLayer(marker => {
-        const ll = marker.getLatLng();
         const name = marker._cctvName || 'CCTV';
-        if(q && !name.toLowerCase().includes(q)) return;
+        if (q && !name.toLowerCase().includes(q)) return;
         const li = document.createElement('li');
         li.className = 'is-cctv';
         li.innerHTML = `<span class="tag"></span><span class="nm">${name}</span><span class="viewers">-</span>`;
         li.addEventListener('click', () => {
-          map.flyTo(ll, Math.max(map.getZoom(), 15), { duration: 0.6 });
+          map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 15), { duration: 0.6 });
           marker.fire('click');
           listPanel.classList.remove('open');
         });
         listItems.appendChild(li);
-        count++;
       });
     }
 
-    if(!count){
-      listItems.innerHTML = '<li class="list-empty" style="cursor:default">검색 결과가 없습니다</li>';
+    if (!listItems.children.length) {
+      listItems.innerHTML = '<li class="list-empty" style="cursor:default">검색 결과 없음</li>';
       return;
     }
 
-    // videoId 있는 것만 일괄 조회 → 한 번에 반영
+    // 2) tomarigiId 없는 videoId만 YouTube 일괄
     const rows = [...listItems.querySelectorAll('li:not(.is-cctv)')];
-    const ids = filtered.map(c => getListVideoId(c));
-    const batch = await fetchConcurrentViewersBatch(ids.filter(Boolean));
-    const nextSS = { ...ss };
-    rows.forEach((row, i) => {
-      const el = row.querySelector('.viewers');
-      if (!el || !filtered[i]) return;
-      const cam = filtered[i];
-      const vid = ids[i];
-      if (!vid) {
-        el.textContent = '-';
-        el.classList.remove('has-count');
-        return;
+    const needYt = [];
+    const needYtIdx = [];
+    filtered.forEach((c, i) => {
+      if (c.tomarigiId && resolveTomarigi(c)) return;
+      if (c.videoId) {
+        needYt.push(c.videoId);
+        needYtIdx.push(i);
       }
-      const n = batch[vid];
-      el.textContent = formatViewers(n);
-      el.classList.toggle('has-count', n != null);
+    });
+    const batch = await fetchConcurrentViewersBatch(needYt);
+    const nextSS = { ...ss };
+    needYtIdx.forEach((i, j) => {
+      const el = rows[i] && rows[i].querySelector('.viewers');
+      if (!el) return;
+      const cam = filtered[i];
+      const n = batch[needYt[j]];
+      const t = formatViewers(n);
+      el.textContent = t || '-';
+      el.classList.toggle('has-count', !!t);
       if (n != null) nextSS[camCacheKey(cam)] = n;
     });
+    // Tomarigi 값도 SS에 저장
+    filtered.forEach(c => {
+      const n = getCamViewers(c);
+      if (n != null) nextSS[camCacheKey(c)] = n;
+    });
     saveViewersToSS(nextSS);
+
+    const meta = document.getElementById('listMeta');
+    if (tomarigiReady) {
+      meta.textContent = tomarigiMsg + ` · 매칭 ${matchedT}/${filtered.length}`;
+      meta.className = 'list-meta ok';
+    }
   }
 
   document.getElementById('listBtn').addEventListener('click', () => {
     listPanel.classList.toggle('open');
-    if(listPanel.classList.contains('open')) renderList(listSearch.value);
+    if (listPanel.classList.contains('open')) renderList(listSearch.value);
   });
   document.getElementById('listClose').addEventListener('click', () => listPanel.classList.remove('open'));
   listSearch.addEventListener('input', () => renderList(listSearch.value));
 
+  // pick / modal
   const addBtn = document.getElementById('addBtn');
   const pickHint = document.getElementById('pickHint');
   const mapEl = document.getElementById('map');
@@ -896,22 +906,20 @@
   const codeResult = document.getElementById('codeResult');
   const codeText = document.getElementById('codeText');
   const btnCopy = document.getElementById('btnCopy');
-  let pickMode = false;
-  let pickedLatLng = null;
-  let tempMarker = null;
+  let pickMode = false, pickedLatLng = null, tempMarker = null;
 
-  function togglePickMode(force){
+  function togglePickMode(force) {
     pickMode = force !== undefined ? force : !pickMode;
     addBtn.classList.toggle('active', pickMode);
     pickHint.classList.toggle('show', pickMode);
     mapEl.classList.toggle('picking', pickMode);
   }
   addBtn.addEventListener('click', () => togglePickMode());
-  map.on('click', (e) => {
-    if(!pickMode) return;
+  map.on('click', e => {
+    if (!pickMode) return;
     pickedLatLng = e.latlng;
-    if(tempMarker) map.removeLayer(tempMarker);
-    tempMarker = L.marker(e.latlng, { icon: L.divIcon({ className:'temp-marker', iconSize:[22,22] }) }).addTo(map);
+    if (tempMarker) map.removeLayer(tempMarker);
+    tempMarker = L.marker(e.latlng, { icon: L.divIcon({ className: 'temp-marker', iconSize: [22, 22] }) }).addTo(map);
     modalCoord.textContent = `위도 ${e.latlng.lat.toFixed(6)}, 경도 ${e.latlng.lng.toFixed(6)}`;
     document.getElementById('fName').value = '';
     document.getElementById('fUrl').value = '';
@@ -921,10 +929,9 @@
     modalOverlay.classList.add('show');
     togglePickMode(false);
   });
-
-  function extractYoutubeId(input){
+  function extractYoutubeId(input) {
     input = input.trim();
-    if(/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+    if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
     const patterns = [
       /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
       /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
@@ -932,17 +939,17 @@
       /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
       /[?&]v=([a-zA-Z0-9_-]{11})/,
     ];
-    for(const re of patterns){
+    for (const re of patterns) {
       const m = input.match(re);
-      if(m) return m[1];
+      if (m) return m[1];
     }
     return null;
   }
-  document.getElementById('modalCancel').addEventListener('click', closeModal);
-  function closeModal(){
+  function closeModal() {
     modalOverlay.classList.remove('show');
-    if(tempMarker){ map.removeLayer(tempMarker); tempMarker = null; }
+    if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
   }
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
   document.getElementById('modalGenerate').addEventListener('click', () => {
     const name = document.getElementById('fName').value.trim() || '이름 없는 카메라';
     const urlRaw = document.getElementById('fUrl').value.trim();
@@ -950,36 +957,32 @@
     const vid = extractYoutubeId(urlRaw);
     const errEl = document.getElementById('fUrlErr');
     let camData;
-    if(vid){
-      camData = { name, lat: Number(pickedLatLng.lat.toFixed(6)), lng: Number(pickedLatLng.lng.toFixed(6)), videoId: vid, desc };
-    } else if(/^https?:\/\//i.test(urlRaw)){
-      camData = { name, lat: Number(pickedLatLng.lat.toFixed(6)), lng: Number(pickedLatLng.lng.toFixed(6)), externalUrl: urlRaw, desc };
+    if (vid) {
+      camData = { name, lat: +pickedLatLng.lat.toFixed(6), lng: +pickedLatLng.lng.toFixed(6), videoId: vid, desc };
+    } else if (/^https?:\/\//i.test(urlRaw)) {
+      camData = { name, lat: +pickedLatLng.lat.toFixed(6), lng: +pickedLatLng.lng.toFixed(6), externalUrl: urlRaw, desc };
     } else {
       errEl.classList.add('show');
       return;
     }
     errEl.classList.remove('show');
-    const snippet = camData.videoId
+    codeText.textContent = camData.videoId
       ? `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, videoId: "${camData.videoId}", desc: "${desc.replace(/"/g,'\\"')}" },`
       : `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, externalUrl: "${camData.externalUrl.replace(/"/g,'\\"')}", desc: "${desc.replace(/"/g,'\\"')}" },`;
-    codeText.textContent = snippet;
     codeResult.classList.add('show');
     addCamMarker(camData);
     cams.push(camData);
     updateCount();
   });
   btnCopy.addEventListener('click', async () => {
-    try{
+    try {
       await navigator.clipboard.writeText(codeText.textContent);
       btnCopy.textContent = '복사됨 ✓';
-      btnCopy.classList.add('copied');
-      setTimeout(() => { btnCopy.textContent = '코드 복사'; btnCopy.classList.remove('copied'); }, 1600);
-    }catch(err){
-      btnCopy.textContent = '복사 실패 — 직접 선택해 복사하세요';
-    }
+      setTimeout(() => { btnCopy.textContent = '코드 복사'; }, 1600);
+    } catch (_) {}
   });
 
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (modalOverlay.classList.contains('show')) { closeModal(); return; }
     if (panel.classList.contains('open')) { closeCam(); return; }
@@ -990,14 +993,11 @@
     const panelEl = document.getElementById('panel');
     const handle = document.getElementById('panelResize');
     if (!panelEl || !handle) return;
-    const STORAGE_KEY = 'livecam-panel-width';
+    const KEY = 'livecam-panel-width';
     const MIN_W = 280;
     const MAX_W = () => Math.min(1600, window.innerWidth * 0.96);
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const w = Math.min(MAX_W(), Math.max(MIN_W, parseInt(saved, 10)));
-      panelEl.style.width = w + 'px';
-    }
+    const saved = localStorage.getItem(KEY);
+    if (saved) panelEl.style.width = Math.min(MAX_W(), Math.max(MIN_W, parseInt(saved, 10))) + 'px';
     let startX = 0, startW = 0;
     function onMove(e) {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -1009,7 +1009,7 @@
       document.removeEventListener('mouseup', onUp);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onUp);
-      localStorage.setItem(STORAGE_KEY, parseInt(panelEl.style.width, 10) || 380);
+      localStorage.setItem(KEY, parseInt(panelEl.style.width, 10) || 380);
     }
     function onDown(e) {
       e.preventDefault();
@@ -1026,6 +1026,7 @@
   })();
 
   updateCount();
+  loadTomarigi();
 </script>
 </body>
 </html>
