@@ -57,12 +57,15 @@
     color:var(--accent); text-transform:uppercase;
   }
   .brand .title{ font-size:15px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
-  .count-pill{
+  .topbar-actions{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
     margin-left:auto; pointer-events:auto;
+  }
+  .count-pill{
     background:var(--panel); border:1px solid var(--line);
     border-radius:20px; padding:7px 14px;
     font-family:var(--mono); font-size:11px; color:var(--text-dim);
-    display:flex; align-items:center; gap:6px;
+    display:flex; align-items:center; gap:6px; flex-shrink:0;
   }
   .count-pill b{ color:var(--text); font-weight:600; }
   .count-pill .dot{
@@ -126,6 +129,25 @@
     .panel{ left:0; right:0; bottom:0; height:58%; border-radius:16px 16px 0 0; }
     .panel.open{ transform: translateY(0); }
     .panel-resize{ display:none; }
+    .topbar{
+      padding:10px 10px 8px; gap:6px; align-items:flex-start;
+    }
+    .brand .kicker{ font-size:9px; }
+    .brand .title{ font-size:13px; }
+    .topbar-actions{
+      margin-left:0; width:100%;
+      flex-wrap:nowrap; overflow-x:auto; gap:6px;
+      -webkit-overflow-scrolling:touch; padding-bottom:2px;
+    }
+    .topbar-actions::-webkit-scrollbar{ display:none; }
+    .add-btn{
+      padding:6px 10px; font-size:11px; border-radius:16px; gap:4px; flex-shrink:0;
+    }
+    .count-pill{ padding:6px 10px; font-size:10px; }
+    .leaflet-control-zoom{ margin-top:96px !important; }
+    .pick-hint{ top:88px; font-size:11px; padding:6px 12px; max-width:92vw; text-align:center; }
+    .style-switch{ left:10px; bottom:16px; padding:2px; }
+    .style-switch button{ padding:6px 10px; font-size:11px; }
   }
   .panel-resize{
     position:absolute; left:0; top:0; bottom:0; width:8px; cursor:ew-resize; z-index:20;
@@ -341,10 +363,12 @@
     <div class="kicker">Live Cam Map · Demo</div>
     <div class="title">실시간 카메라 지도</div>
   </div>
-  <button class="add-btn" id="listBtn">☰ 목록</button>
-  <button class="add-btn" id="cctvBtn">📹 국도 CCTV</button>
-  <button class="add-btn" id="addBtn">+ 카메라 추가</button>
-  <div class="count-pill"><span class="dot"></span>등록 <b id="camCount">0</b>개</div>
+  <div class="topbar-actions">
+    <button class="add-btn" id="listBtn">☰ 목록</button>
+    <button class="add-btn" id="cctvBtn">📹 CCTV</button>
+    <button class="add-btn" id="addBtn">+ 추가</button>
+    <div class="count-pill"><span class="dot"></span><b id="camCount">0</b></div>
+  </div>
 </div>
 <div class="pick-hint" id="pickHint">지도를 클릭해 카메라 위치를 선택하세요 (취소: 버튼 다시 클릭)</div>
 <div class="hint" id="hint">지도 위 점을 눌러보세요</div>
@@ -414,6 +438,11 @@
   const MAPTILER_KEY = 'EhogGAwYASE0hk398mb8';
   const YOUTUBE_API_KEY = 'AIzaSyBbGHS7EXSuj1t9V187FIr1flIfDMec3xA';
 
+  // 목록에서 live-redirect search 사용 안 함 (할당량 폭주 방지)
+  // videoId 있는 캠만 videos.list 로 시청자 수 조회 (50개당 1유닛)
+  const VIEWERS_SS_KEY = 'livecam-viewers-v1';
+  const VIEWER_MEM_TTL = 60_000;
+
   const cams = [
     // ===== 부산 =====
     { name: "해운대 해수욕장", lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", desc: "해운대 해변가 실시간 화면 예시" },
@@ -432,37 +461,34 @@
     { name: "잠실 롯데월드", lat: 37.508868, lng: 127.100004, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=롯데월드", desc: "잠실 롯데월드" },
     { name: "잠실 석촌호수", lat: 37.512603, lng: 127.106634, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=석촌호수", desc: "잠실 석촌호수" },
     { name: "반포대교", lat: 37.51514, lng: 126.99616, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DailySeoul&keyword=반포대교", desc: "반포대교 4k" },
-    { name: "반포대교 한강공원", lat: 37.512483, lng: 127.000355, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=잠수교", desc: "🛑4K 서울 반포대교 잠수교 분수쇼 석양 로파이 Seoul Banpo Grand Bridge Fountain Show🛑LoFi Music Live Streaming Sunset" },
-    { name: "올림픽대로", lat: 37.511824, lng: 127.001685, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=%EC%98%AC%EB%A6%BC%ED%94%BD%EB%8C%80%EB%A1%9C", desc: "🛑4K 서울 한강 라이브 실시간 한강공원 여의도 올림픽대로 분수쇼 Seoul Han River Park Olympic Expressway Fountain Show LoFi🛑" },
-    { name: "그라스 정원", lat: 37.517096, lng: 127.00662, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=%ED%95%9C%EB%82%A8%EB%8C%80%EA%B5%90", desc: "🛑4K 남산타워 스타벅스 한남대교 유엔빌리지 자전거 수영장 보트 Seoul N TOWER River Boat Bridge UN Village LoFi Cycling Live" },
+    { name: "반포대교 한강공원", lat: 37.512483, lng: 127.000355, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=잠수교", desc: "반포대교 잠수교" },
+    { name: "올림픽대로", lat: 37.511824, lng: 127.001685, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=%EC%98%AC%EB%A6%BC%ED%94%BD%EB%8C%80%EB%A1%9C", desc: "올림픽대로" },
+    { name: "그라스 정원", lat: 37.517096, lng: 127.00662, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=%ED%95%9C%EB%82%A8%EB%8C%80%EA%B5%90", desc: "한남대교 일대" },
     { name: "남산서울타워", lat: 37.551727, lng: 126.988105, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@YTNSeoulTower&keyword=타워", desc: "남산서울타워" },
-    { name: "서울역광장", lat: 37.555293, lng: 126.971923, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=%EC%84%9C%EC%9A%B8%EC%97%AD", desc: "서울실시간 서울역광장 Live Cam I \"Seoul Station Plaza\". Seoul,Korea I 서울역 서울여행 서울광장 서울시 SeoulStation ソウル駅広場" },
-    { name: "월드컵대교", lat: 37.555703, lng: 126.885223, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@riverworker&keyword=난지캠핑", desc: "SKYline🌉🏙️ 여의도 서울달 마포 월드컵대교 한강공원 난지캠핑장 강변북로" },
-    { name: "월드컵대교 가까이", lat: 37.557779, lng: 126.88621, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@riverworker&keyword=가까이", desc: "월드컵대교, 강변북로 사이의 반짝이는 여의도 스카이라인 풍경을 감상하세요📹" },
+    { name: "서울역광장", lat: 37.555293, lng: 126.971923, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=%EC%84%9C%EC%9A%B8%EC%97%AD", desc: "서울역광장" },
+    { name: "월드컵대교", lat: 37.555703, lng: 126.885223, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@riverworker&keyword=난지캠핑", desc: "월드컵대교" },
+    { name: "월드컵대교 가까이", lat: 37.557779, lng: 126.88621, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@riverworker&keyword=가까이", desc: "월드컵대교 가까이" },
     { name: "홍대입구역 4번 출구", lat: 37.558336, lng: 126.925808, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@hongdaelive&keyword=Hongdae", desc: "홍대입구역 4번 출구" },
-    { name: "가양대교", lat: 37.573443, lng: 126.864109, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%EC%84%9C%EC%9A%B8%ED%95%9C%EA%B0%95%EB%9D%BC%EC%9D%B4%EB%B8%8C&keyword=432", desc: "서울 한강 라이브 카메라 | 강변북로, 가양대교, 한강 전경 실시간 스트리밍" },
-    { name: "반포대교 공원길", lat: 37.513487, lng: 126.996953, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Live_HanGang&keyword=한강", desc: "반포대교, 세빛섬, 올림픽대로, 강변북로, 그리고 상징적인 63빌딩이 보이는 멀리 떨어진 여의도 스카이라인" },
+    { name: "가양대교", lat: 37.573443, lng: 126.864109, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%EC%84%9C%EC%9A%B8%ED%95%9C%EA%B0%95%EB%9D%BC%EC%9D%B4%EB%B8%8C&keyword=432", desc: "가양대교" },
+    { name: "반포대교 공원길", lat: 37.513487, lng: 126.996953, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Live_HanGang&keyword=한강", desc: "반포대교 공원길" },
     { name: "동호대교", lat: 37.536861, lng: 127.020525, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@seoulvibes_live&keyword=로파이", desc: "동호대교" },
     // ===== 오사카 =====
     { name: "오사카성", lat: 34.687413, lng: 135.525804, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tvosakanews&keyword=Castle", desc: "오사카성" },
-    { name: "오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", desc: "카니도라쿠 도톤보리점 -> 에비스바시 다리" },
-    { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", desc: "에비스바시 -> 난바 방향 상점가" },
+    { name: "오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", desc: "에비스바시 다리" },
+    { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", desc: "에비스바시 상점가" },
     { name: "글리코상", lat: 34.669072, lng: 135.501305, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@mbsnews&keyword=Dotonbori", desc: "글리코상" },
-    { name: "츠텐카쿠", lat: 34.652631, lng: 135.506382, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ebisuhotel&keyword=osaka", desc: "츠텐카쿠는 오사카부 오사카시 나니와구 신세계에 서 있는 높이 108미터의 전망탑입니다." },
-    { name: "우메다 스카이 빌딩 공중정원", lat: 34.698565, lng: 135.490383, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sports_mainichi&keyword=Umeda", desc: "오사카시 북구 우메다에 있는 매일신문 오사카 본사에서, 오사카·우메다 ‘우메키타 지역’의 교통 상황과 날씨 모습" },
+    { name: "츠텐카쿠", lat: 34.652631, lng: 135.506382, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ebisuhotel&keyword=osaka", desc: "츠텐카쿠" },
+    { name: "우메다 스카이 빌딩 공중정원", lat: 34.698565, lng: 135.490383, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sports_mainichi&keyword=Umeda", desc: "우메다" },
     // ===== 도쿄(신주쿠) =====
     { name: "가부키초 이치반가이", lat: 35.693869, lng: 139.701031, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-1&keyword=24", desc: "가부키초 이치반가이" },
     { name: "가부키초 1번가", lat: 35.6940837, lng: 139.7011244, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-2&keyword=Channel", desc: "가부키초 1번가" },
-    { name: "가부키초 1번가 2", lat: 35.694278, lng: 139.701159, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E4%B8%80%E7%95%AA%E8%A1%97", desc: "가부키초 이치반가이 라이브 영상" },
-    { name: "고질라 스퀘어", lat: 35.694804, lng: 139.701945, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E3%83%A9%E3%82%A4%E3%83%96", desc: "도쿄 신주쿠 가부키초 토호 빌딩 플라자(‘고질라 스퀘어’)" },
-    { name: "시네시티 광장(토요코)", lat: 35.695513, lng: 139.701671, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KabukichoLiveCamera&keyword=歌舞伎町", desc: "신주쿠·가부키초의 시네시티 광장(통칭: 토요코) 주변의 현재 모습" },
+    { name: "가부키초 1번가 2", lat: 35.694278, lng: 139.701159, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E4%B8%80%E7%95%AA%E8%A1%97", desc: "가부키초 이치반가이 라이브" },
+    { name: "고질라 스퀘어", lat: 35.694804, lng: 139.701945, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E3%83%A9%E3%82%A4%E3%83%96", desc: "고질라 스퀘어" },
+    { name: "시네시티 광장(토요코)", lat: 35.695513, lng: 139.701671, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KabukichoLiveCamera&keyword=歌舞伎町", desc: "시네시티 광장" },
   ];
 
   const map = L.map('map', {
-    zoomControl: true,
-    attributionControl: true,
-    minZoom: 3,
-    maxZoom: 18,
+    zoomControl: true, attributionControl: true, minZoom: 3, maxZoom: 18,
   });
 
   const styles = {
@@ -470,11 +496,8 @@
       type: 'raster',
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       options: {
-        attribution: '&copy; OpenStreetMap contributors',
-        subdomains: 'abc',
-        maxZoom: 20,
-        maxNativeZoom: 19,
-        className: 'dark-tiles'
+        attribution: '&copy; OpenStreetMap contributors', subdomains: 'abc',
+        maxZoom: 20, maxNativeZoom: 19, className: 'dark-tiles'
       },
       mapMaxZoom: 19
     },
@@ -482,11 +505,7 @@
     satellite: {
       type: 'raster',
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      options: {
-        attribution: 'Imagery &copy; Esri',
-        maxZoom: 20,
-        maxNativeZoom: 19
-      },
+      options: { attribution: 'Imagery &copy; Esri', maxZoom: 20, maxNativeZoom: 19 },
       mapMaxZoom: 19
     }
   };
@@ -497,15 +516,13 @@
       { attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }
     );
   }
-
   function createStyleLayer(name) {
     const s = styles[name];
     if (s.type === 'maptiler-raster') {
-      if (!MAPTILER_KEY) return createCartoLayer();
-      if (typeof L.maplibreGL !== 'function') return createCartoLayer();
+      if (!MAPTILER_KEY || typeof L.maplibreGL !== 'function') return createCartoLayer();
       const gl = L.maplibreGL({
         style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
-        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OSM</a>',
       });
       gl.on('add', () => {
         const mMap = gl.getMaplibreMap();
@@ -549,8 +566,6 @@
   let activeHls = null;
   const camMarkers = new Map();
   const viewerCache = new Map();
-  const videoIdCache = new Map();
-  const channelIdCache = new Map();
 
   function stopVideo(){
     if(activeHls){ try{ activeHls.destroy(); }catch(e){} activeHls = null; }
@@ -565,7 +580,6 @@
       return u.replace(/([?&])embed=1(&|$)/, (_, p, e) => e ? p : '').replace(/[?&]$/, '');
     }
   }
-
   function openCam(cam, marker){
     if(activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = marker;
@@ -606,7 +620,6 @@
     panel.classList.add('open');
     hint.classList.add('hidden');
   }
-
   function closeCam(){
     panel.classList.remove('open');
     stopVideo();
@@ -620,9 +633,7 @@
   function addCamMarker(cam){
     const icon = L.divIcon({ className: 'cam-marker', iconSize: [20,20] });
     const marker = L.marker([cam.lat, cam.lng], { icon }).addTo(map);
-    marker.bindTooltip(cam.name, {
-      direction: 'top', offset: [0, -12], className: 'cam-tip', opacity: 1,
-    });
+    marker.bindTooltip(cam.name, { direction: 'top', offset: [0, -12], className: 'cam-tip', opacity: 1 });
     marker.on('click', () => openCam(cam, marker));
     camMarkers.set(cam, marker);
     return marker;
@@ -634,8 +645,7 @@
   cams.forEach(addCamMarker);
   (function fitAllCams() {
     if (!cams.length) { map.setView([35.16, 129.15], 12); return; }
-    const bounds = L.latLngBounds(cams.map(c => [c.lat, c.lng]));
-    map.fitBounds(bounds.pad(0.2), { maxZoom: 7, animate: false });
+    map.fitBounds(L.latLngBounds(cams.map(c => [c.lat, c.lng])).pad(0.2), { maxZoom: 7, animate: false });
   })();
 
   const ITS_API_KEY = 'f9565bfc1f2b4a68a26c48120f5c27b3';
@@ -648,8 +658,7 @@
     disableClusteringAtZoom: 15,
     iconCreateFunction: cluster => L.divIcon({
       html: `<span>${cluster.getChildCount()}</span>`,
-      className: 'marker-cluster-custom',
-      iconSize: [36, 36],
+      className: 'marker-cluster-custom', iconSize: [36, 36],
     }),
   });
   function itsUrl(bounds){
@@ -674,18 +683,13 @@
         if(!c.coordy || !c.coordx) return;
         const icon = L.divIcon({ className: 'cctv-marker', iconSize: [12,12] });
         const marker = L.marker([c.coordy, c.coordx], { icon });
-        marker.bindTooltip(c.cctvname || 'CCTV', {
-          direction: 'top', offset: [0, -8], className: 'cam-tip', opacity: 1,
-        });
+        marker.bindTooltip(c.cctvname || 'CCTV', { direction: 'top', offset: [0, -8], className: 'cam-tip', opacity: 1 });
         marker.on('click', () => openCctv(c, marker));
         cctvLayer.addLayer(marker);
       });
       updateCount();
-    }catch(e){
-      console.warn('ITS CCTV 로드 실패:', e.message);
-    }finally{
-      cctvLoading = false;
-    }
+    }catch(e){ console.warn('ITS CCTV 로드 실패:', e.message); }
+    finally{ cctvLoading = false; }
   }
   function openCctv(c, marker){
     if(activeMarker) activeMarker.getElement()?.classList.remove('active');
@@ -701,9 +705,7 @@
     const videoWrap = document.getElementById('videoWrap');
     videoWrap.innerHTML = '<div class="video-state" id="cctvState"><div class="spin"></div><div>불러오는 중…</div></div>';
     let streamUrl = c.cctvurl || '';
-    if (streamUrl.startsWith('http://')) {
-      streamUrl = 'https://' + streamUrl.slice('http://'.length);
-    }
+    if (streamUrl.startsWith('http://')) streamUrl = 'https://' + streamUrl.slice(7);
     if(!streamUrl){
       videoWrap.innerHTML = '<div class="video-state">이 카메라는 스트림 주소가 없습니다</div>';
     }else{
@@ -716,9 +718,7 @@
         activeHls.attachMedia(video);
         activeHls.on(Hls.Events.MANIFEST_PARSED, () => { state?.remove(); video.play().catch(()=>{}); });
         activeHls.on(Hls.Events.ERROR, (_, d) => {
-          if(d.fatal) {
-            videoWrap.innerHTML = '<div class="video-state">이 카메라는 지금 재생할 수 없습니다<br><span style="font-size:11px;opacity:.7">HTTPS 미지원 또는 스트림 오류일 수 있습니다</span></div>';
-          }
+          if(d.fatal) videoWrap.innerHTML = '<div class="video-state">이 카메라는 지금 재생할 수 없습니다<br><span style="font-size:11px;opacity:.7">HTTPS 미지원 또는 스트림 오류</span></div>';
         });
       }else if(video.canPlayType('application/vnd.apple.mpegurl')){
         video.src = streamUrl;
@@ -750,126 +750,63 @@
     if (!Number.isFinite(num)) return '-';
     return num.toLocaleString('ko-KR') + '명';
   }
-
-  function parseLiveRedirect(url) {
-    try {
-      const u = new URL(url);
-      if (!/live-redirect/i.test(u.href)) return null;
-      const channel = u.searchParams.get('channel');
-      const keyword = (u.searchParams.get('keyword') || '').trim();
-      if (!channel) return null;
-      return { channel, keyword };
-    } catch (_) {
-      return null;
-    }
+  function camCacheKey(cam) {
+    return cam.videoId || cam.externalUrl || cam.name;
+  }
+  function loadViewersFromSS() {
+    try { return JSON.parse(sessionStorage.getItem(VIEWERS_SS_KEY) || '{}'); }
+    catch (_) { return {}; }
+  }
+  function saveViewersToSS(obj) {
+    try { sessionStorage.setItem(VIEWERS_SS_KEY, JSON.stringify(obj)); }
+    catch (_) {}
   }
 
-  async function resolveChannelId(channelParam) {
-    if (!YOUTUBE_API_KEY) return null;
-    const handle = String(channelParam).replace(/^@/, '').trim();
-    if (!handle) return null;
-    const cacheKey = '@' + handle;
-    if (channelIdCache.has(cacheKey)) return channelIdCache.get(cacheKey);
-    try {
-      let res = await fetch(
-        'https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=' +
-          encodeURIComponent(handle) +
-          '&key=' + encodeURIComponent(YOUTUBE_API_KEY)
-      );
-      if (res.ok) {
+  /** videoId만 사용 — search 없음 (100캠+ 대비) */
+  function getListVideoId(cam) {
+    return cam.videoId || null;
+  }
+
+  /** videos.list 일괄 (최대 50개 = 1유닛) */
+  async function fetchConcurrentViewersBatch(videoIds) {
+    const ids = [...new Set(videoIds.filter(Boolean))];
+    const result = {};
+    if (!ids.length || !YOUTUBE_API_KEY) return result;
+    const now = Date.now();
+    const need = [];
+    for (const id of ids) {
+      const c = viewerCache.get(id);
+      if (c && now - c.ts < VIEWER_MEM_TTL) result[id] = c.count;
+      else need.push(id);
+    }
+    for (let i = 0; i < need.length; i += 50) {
+      const chunk = need.slice(i, i + 50);
+      try {
+        const url =
+          'https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=' +
+          encodeURIComponent(chunk.join(',')) +
+          '&key=' + encodeURIComponent(YOUTUBE_API_KEY);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('yt ' + res.status);
         const data = await res.json();
-        const id = data.items && data.items[0] && data.items[0].id;
-        if (id) {
-          channelIdCache.set(cacheKey, id);
-          return id;
+        for (const item of (data.items || [])) {
+          const raw = item.liveStreamingDetails && item.liveStreamingDetails.concurrentViewers;
+          const count = raw != null ? Number(raw) : null;
+          viewerCache.set(item.id, { count, ts: Date.now() });
+          result[item.id] = count;
         }
+        for (const id of chunk) {
+          if (!(id in result)) {
+            viewerCache.set(id, { count: null, ts: Date.now() });
+            result[id] = null;
+          }
+        }
+      } catch (e) {
+        console.warn('시청자 일괄 조회 실패', e.message);
+        chunk.forEach(id => { if (!(id in result)) result[id] = null; });
       }
-      res = await fetch(
-        'https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=1&q=' +
-          encodeURIComponent('@' + handle) +
-          '&key=' + encodeURIComponent(YOUTUBE_API_KEY)
-      );
-      if (!res.ok) return null;
-      const data = await res.json();
-      const item = data.items && data.items[0];
-      const id = item && (item.snippet && item.snippet.channelId
-        ? item.snippet.channelId
-        : (item.id && item.id.channelId));
-      if (id) channelIdCache.set(cacheKey, id);
-      return id || null;
-    } catch (e) {
-      console.warn('channelId 조회 실패', handle, e.message);
-      return null;
     }
-  }
-
-  async function resolveVideoIdFromLiveRedirect(externalUrl) {
-    const parsed = parseLiveRedirect(externalUrl);
-    if (!parsed || !YOUTUBE_API_KEY) return null;
-    const cacheKey = parsed.channel + '|' + parsed.keyword;
-    const cached = videoIdCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < 5 * 60_000) return cached.videoId;
-
-    const channelId = await resolveChannelId(parsed.channel);
-    if (!channelId) return null;
-    try {
-      let api =
-        'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&eventType=live&maxResults=5&channelId=' +
-        encodeURIComponent(channelId) +
-        '&key=' + encodeURIComponent(YOUTUBE_API_KEY);
-      if (parsed.keyword) api += '&q=' + encodeURIComponent(parsed.keyword);
-      const res = await fetch(api);
-      if (!res.ok) throw new Error('search ' + res.status);
-      const data = await res.json();
-      const items = data.items || [];
-      if (!items.length) {
-        videoIdCache.set(cacheKey, { videoId: null, ts: Date.now() });
-        return null;
-      }
-      let chosen = items[0];
-      if (parsed.keyword) {
-        const kw = parsed.keyword.toLowerCase();
-        const hit = items.find(it =>
-          ((it.snippet && it.snippet.title) || '').toLowerCase().includes(kw)
-        );
-        if (hit) chosen = hit;
-      }
-      const videoId = chosen.id && chosen.id.videoId;
-      videoIdCache.set(cacheKey, { videoId: videoId || null, ts: Date.now() });
-      return videoId || null;
-    } catch (e) {
-      console.warn('live-redirect videoId 해석 실패', e.message);
-      return null;
-    }
-  }
-
-  async function resolveCamVideoId(cam) {
-    if (cam.videoId) return cam.videoId;
-    if (cam.externalUrl) return resolveVideoIdFromLiveRedirect(cam.externalUrl);
-    return null;
-  }
-
-  async function fetchConcurrentViewers(videoId) {
-    if (!videoId || !YOUTUBE_API_KEY) return null;
-    const cached = viewerCache.get(videoId);
-    if (cached && Date.now() - cached.ts < 60_000) return cached.count;
-    try {
-      const url =
-        'https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=' +
-        encodeURIComponent(videoId) +
-        '&key=' + encodeURIComponent(YOUTUBE_API_KEY);
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('yt ' + res.status);
-      const data = await res.json();
-      const item = data.items && data.items[0];
-      const raw = item && item.liveStreamingDetails && item.liveStreamingDetails.concurrentViewers;
-      const count = raw != null ? Number(raw) : null;
-      viewerCache.set(videoId, { count, ts: Date.now() });
-      return count;
-    } catch (e) {
-      console.warn('시청자 수 조회 실패', videoId, e.message);
-      return null;
-    }
+    return result;
   }
 
   async function renderList(filterText){
@@ -877,13 +814,17 @@
     listItems.innerHTML = '';
     let count = 0;
     const filtered = cams.filter(c => !q || c.name.toLowerCase().includes(q));
+    const ss = loadViewersFromSS();
 
     for (const c of filtered) {
       const li = document.createElement('li');
+      const key = camCacheKey(c);
+      const cached = ss[key];
+      const initial = (cached != null && cached !== '') ? formatViewers(cached) : (c.videoId ? '…' : '-');
       li.innerHTML =
         `<span class="tag"></span>` +
         `<span class="nm">${c.name}</span>` +
-        `<span class="viewers">…</span>`;
+        `<span class="viewers${cached != null && cached !== '' ? ' has-count' : ''}">${initial}</span>`;
       li.addEventListener('click', () => {
         map.flyTo([c.lat, c.lng], 15, { duration: 0.6 });
         const marker = camMarkers.get(c);
@@ -901,10 +842,7 @@
         if(q && !name.toLowerCase().includes(q)) return;
         const li = document.createElement('li');
         li.className = 'is-cctv';
-        li.innerHTML =
-          `<span class="tag"></span>` +
-          `<span class="nm">${name}</span>` +
-          `<span class="viewers">-</span>`;
+        li.innerHTML = `<span class="tag"></span><span class="nm">${name}</span><span class="viewers">-</span>`;
         li.addEventListener('click', () => {
           map.flyTo(ll, Math.max(map.getZoom(), 15), { duration: 0.6 });
           marker.fire('click');
@@ -920,20 +858,27 @@
       return;
     }
 
-    const rows = listItems.querySelectorAll('li:not(.is-cctv)');
-    for (let i = 0; i < rows.length && i < filtered.length; i++) {
-      const el = rows[i].querySelector('.viewers');
-      if (!el) continue;
+    // videoId 있는 것만 일괄 조회 → 한 번에 반영
+    const rows = [...listItems.querySelectorAll('li:not(.is-cctv)')];
+    const ids = filtered.map(c => getListVideoId(c));
+    const batch = await fetchConcurrentViewersBatch(ids.filter(Boolean));
+    const nextSS = { ...ss };
+    rows.forEach((row, i) => {
+      const el = row.querySelector('.viewers');
+      if (!el || !filtered[i]) return;
       const cam = filtered[i];
-      const vid = await resolveCamVideoId(cam);
+      const vid = ids[i];
       if (!vid) {
         el.textContent = '-';
-        continue;
+        el.classList.remove('has-count');
+        return;
       }
-      const n = await fetchConcurrentViewers(vid);
+      const n = batch[vid];
       el.textContent = formatViewers(n);
-      if (n != null) el.classList.add('has-count');
-    }
+      el.classList.toggle('has-count', n != null);
+      if (n != null) nextSS[camCacheKey(cam)] = n;
+    });
+    saveViewersToSS(nextSS);
   }
 
   document.getElementById('listBtn').addEventListener('click', () => {
@@ -993,7 +938,6 @@
     }
     return null;
   }
-
   document.getElementById('modalCancel').addEventListener('click', closeModal);
   function closeModal(){
     modalOverlay.classList.remove('show');
@@ -1057,8 +1001,7 @@
     let startX = 0, startW = 0;
     function onMove(e) {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const next = Math.min(MAX_W(), Math.max(MIN_W, startW + (startX - clientX)));
-      panelEl.style.width = next + 'px';
+      panelEl.style.width = Math.min(MAX_W(), Math.max(MIN_W, startW + (startX - clientX))) + 'px';
     }
     function onUp() {
       panelEl.classList.remove('resizing');
