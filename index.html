@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
-<link href="https://cdn.maptiler.com/maptiler-sdk-js/v3.9.0/maptiler-sdk.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.3.0/dist/maplibre-gl.css" rel="stylesheet" />
 <style>
   :root{
     --bg: #0a0e14;
@@ -27,6 +27,20 @@
     background:var(--bg); color:var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Malgun Gothic', sans-serif;
     overflow:hidden;
+  }
+  /* 지도/UI 드래그 시 텍스트 선택 방지 */
+  body, #map, .topbar, .style-switch, .add-btn, .count-pill,
+  .list-panel, .panel, .hint, .pick-hint {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .list-head input,
+  .modal-box input,
+  .modal-box textarea,
+  .panel-body,
+  .code-result pre {
+    -webkit-user-select: text;
+    user-select: text;
   }
   #map{ position:absolute; inset:0; background:var(--bg); }
   .leaflet-container{ background:var(--bg); }
@@ -313,6 +327,11 @@
   }
   .list-items li.is-cctv .tag{ background:var(--cctv-color); }
   .list-items li .nm{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .list-items li .viewers{
+    flex-shrink:0; font-family:var(--mono); font-size:11px;
+    color:var(--text-dim); min-width:3.2em; text-align:right;
+  }
+  .list-items li .viewers.has-count{ color:var(--accent); }
   .list-empty{ padding:16px 12px; color:var(--text-dim); font-size:12px; text-align:center; }
 </style>
 </head>
@@ -390,14 +409,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.3.0/dist/maplibre-gl.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.3.0/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@maptiler/maplibre-gl-omt-language/index.js"></script>
 <script>
   const MAPTILER_KEY = 'EhogGAwYASE0hk398mb8';
+  // YouTube Data API v3 키 (동시 시청자 수). 비우면 목록에 "-" 표시
+  const YOUTUBE_API_KEY = 'AIzaSyBbGHS7EXSuj1t9V187FIr1flIfDMec3xA';
 
   const cams = [
+    // ===== 부산 =====
     { name: "부산항대교 전망", lat: 35.1046, lng: 129.0768, videoId: "jfKfPfyJRdk", desc: "부산항대교 인근 상시 라이브 스트림 예시" },
     { name: "해운대 해수욕장", lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", desc: "해운대 해변가 실시간 화면 예시" },
     { name: "송정 해수욕장", lat: 35.177636, lng: 129.196488, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ollahotel1585&keyword=%EC%86%A1%EC%A0%95", desc: "올라호텔에서 송정 해수욕장 바라보는 뷰" },
@@ -407,9 +427,11 @@
     { name: "광안대교 라이브캠", lat: 35.142713, lng: 129.117057, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@BusanLive&keyword=광안대교", desc: "설명 없음" },
     { name: "광안대교 중앙", lat: 35.147592, lng: 129.1302, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=상부", desc: "광안대교 상부 현수교 중앙" },
     { name: "부경대학교", lat: 35.13458, lng: 129.104934, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@PuKyongNationalUniversity&keyword=%EB%B6%80%EA%B2%BD%EB%8C%80%ED%95%99%EA%B5%90", desc: "부경대학교 실시간" },
-    
+
+    // ===== 대전 =====
     { name: "대전엑스포과학공원 한빛광장", lat: 36.375896, lng: 127.388113, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=대전", desc: "대전엑스포과학공원 한빛광장" },
-   
+
+    // ===== 서울 =====
     { name: "서울 동대문 DDP", lat: 37.566198, lng: 127.008337, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DDPLiveSeoul&keyword=LOFI", desc: "서울 동대문 디자인 플라자" },
     { name: "한강 잠실대교", lat: 37.5237, lng: 127.092043, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=잠실대교", desc: "한강 잠실대교" },
     { name: "잠실 롯데월드", lat: 37.508868, lng: 127.100004, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=롯데월드", desc: "잠실 롯데월드" },
@@ -425,25 +447,23 @@
     { name: "홍대입구역 4번 출구", lat: 37.558336, lng: 126.925808, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@hongdaelive&keyword=Hongdae", desc: "홍대입구역 4번 출구" },
     { name: "가양대교", lat: 37.573443, lng: 126.864109, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%EC%84%9C%EC%9A%B8%ED%95%9C%EA%B0%95%EB%9D%BC%EC%9D%B4%EB%B8%8C&keyword=432", desc: "서울 한강 라이브 카메라 | 강변북로, 가양대교, 한강 전경 실시간 스트리밍" },
     { name: "반포대교 공원길", lat: 37.513487, lng: 126.996953, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Live_HanGang&keyword=한강", desc: "반포대교, 세빛섬, 올림픽대로, 강변북로, 그리고 상징적인 63빌딩이 보이는 멀리 떨어진 여의도 스카이라인" },
-    
+
     { name: "동호대교", lat: 37.536861, lng: 127.020525, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@seoulvibes_live&keyword=로파이", desc: "동호대교" },
 
-    
+    // ===== 오사카 =====
     { name: "오사카성", lat: 34.687413, lng: 135.525804, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tvosakanews&keyword=Castle", desc: "오사카성" },
     { name: "오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", desc: "카니도라쿠 도톤보리점 -> 에비스바시 다리" },
     { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", desc: "에비스바시 -> 난바 방향 상점가" },
     { name: "글리코상", lat: 34.669072, lng: 135.501305, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@mbsnews&keyword=Dotonbori", desc: "글리코상" },
     { name: "츠텐카쿠", lat: 34.652631, lng: 135.506382, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ebisuhotel&keyword=osaka", desc: "츠텐카쿠는 오사카부 오사카시 나니와구 신세계에 서 있는 높이 108미터의 전망탑입니다. 1956년에 재건된 2대째의 탑으로, 신세계의 상징으로서 오사카를 대표하는 랜드마크의 하나가 되고 있습니다. 전망대 5층에는 엔기물의 복의 신 ‘비리켄상’이 진좌하고 있으며, 발바닥을 드리면 행복이 찾아온 것으로 알려져 국내외 관광객들에게 인기를 끌고 있습니다. 츠텐카쿠의 주위에 펼쳐지는 신세계는 쇼와 레트로한 분위기가 짙게 남아 있는 시타마치 에리어로, 꼬치 커틀릿의 유명한 가게가 늘어서 있는 「꼬치 커틀릿 발상지」로서 전국적으로 알려져 있습니다. 오사카의 서민 문화를 체감할 수 있는 지역으로 국내외 관광객이 많이 방문하고 있으며, 독특한 활기와 시타마치 정서가 매력의 명소입니다." },
     { name: "우메다 스카이 빌딩 공중정원", lat: 34.698565, lng: 135.490383, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sports_mainichi&keyword=Umeda", desc: "오사카시 북구 우메다에 있는 매일신문 오사카 본사에서, 오사카·우메다 ‘우메키타 지역’의 교통 상황과 날씨 모습" },
-    
 
-    
+    // ===== 도쿄(신주쿠) =====
     { name: "가부키초 이치반가이", lat: 35.693869, lng: 139.701031, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-1&keyword=24", desc: "가부키초 이치반가이" },
     { name: "가부키초 1번가", lat: 35.6940837, lng: 139.7011244, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-2&keyword=Channel", desc: "가부키초 1번가" },
     { name: "가부키초 1번가 2", lat: 35.694278, lng: 139.701159, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E4%B8%80%E7%95%AA%E8%A1%97", desc: "가부키초 이치반가이 라이브 영상" },
     { name: "고질라 스퀘어", lat: 35.694804, lng: 139.701945, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E3%83%A9%E3%82%A4%E3%83%96", desc: "도쿄 신주쿠 가부키초 토호 빌딩 플라자(‘고질라 스퀘어’)" },
     { name: "시네시티 광장(토요코)", lat: 35.695513, lng: 139.701671, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KabukichoLiveCamera&keyword=歌舞伎町", desc: "신주쿠·가부키초의 시네시티 광장(통칭: 토요코) 주변의 현재 모습" },
-    
   ];
 
   const map = L.map('map', {
@@ -453,7 +473,7 @@
     maxZoom: 18,
   });
 
-const styles = {
+  const styles = {
     dark: {
       type: 'raster',
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -466,7 +486,6 @@ const styles = {
       },
       mapMaxZoom: 19
     },
-    // MapTiler 래스터 (플러그인 불필요, 키만 있으면 됨)
     clean: {
       type: 'maptiler-raster',
       mapMaxZoom: 19
@@ -494,15 +513,8 @@ const styles = {
     );
   }
 
-function getMaptilerLayerFactory(){
-  if (typeof L.maptilerLayer === 'function') return L.maptilerLayer;
-  if (L.maptiler && typeof L.maptiler.maptilerLayer === 'function') return L.maptiler.maptilerLayer;
-  return null;
-}
-
   function createStyleLayer(name) {
     const s = styles[name];
-
     if (s.type === 'maptiler-raster') {
       if (!MAPTILER_KEY) {
         console.warn('MapTiler 키 없음 → CARTO');
@@ -516,7 +528,6 @@ function getMaptilerLayerFactory(){
         style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
         attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
       });
-      // 스타일 로드가 끝나면 한국어로 라벨 전환
       gl.on('add', () => {
         const mMap = gl.getMaplibreMap();
         const applyLang = () => {
@@ -527,7 +538,6 @@ function getMaptilerLayerFactory(){
       });
       return gl;
     }
-
     return L.tileLayer(s.url, s.options);
   }
 
@@ -537,17 +547,14 @@ function getMaptilerLayerFactory(){
 
   function switchStyle(name) {
     if (name === currentStyle) return;
-
     document.querySelectorAll('#styleSwitch button').forEach(b =>
       b.classList.toggle('active', b.dataset.style === name)
     );
-
     try {
       if (tileLayer) map.removeLayer(tileLayer);
     } catch (e) {
       console.warn('이전 레이어 제거 실패', e);
     }
-
     try {
       tileLayer = createStyleLayer(name).addTo(map);
       currentStyle = name;
@@ -572,6 +579,7 @@ function getMaptilerLayerFactory(){
   let activeMarker = null;
   let activeHls = null;
   const camMarkers = new Map();
+  const viewerCache = new Map();
 
   function stopVideo(){
     if(activeHls){ try{ activeHls.destroy(); }catch(e){} activeHls = null; }
@@ -649,10 +657,12 @@ function getMaptilerLayerFactory(){
     camMarkers.set(cam, marker);
     return marker;
   }
+
   function updateCount(){
     camCountEl.textContent = cams.length + (cctvOn ? cctvLayer.getLayers().length : 0);
     if(listPanel.classList.contains('open')) renderList(listSearch.value);
   }
+
   cams.forEach(addCamMarker);
 
   (function fitAllCams() {
@@ -726,13 +736,10 @@ function getMaptilerLayerFactory(){
     document.getElementById('panelSrc').textContent = 'source: 국가교통정보센터(ITS)';
     const videoWrap = document.getElementById('videoWrap');
     videoWrap.innerHTML = '<div class="video-state" id="cctvState"><div class="spin"></div><div>불러오는 중…</div></div>';
-
-    // ★ HTTP → HTTPS 시도 (Mixed Content 완화)
     let streamUrl = c.cctvurl || '';
     if (streamUrl.startsWith('http://')) {
       streamUrl = 'https://' + streamUrl.slice('http://'.length);
     }
-
     if(!streamUrl){
       videoWrap.innerHTML = '<div class="video-state">이 카메라는 스트림 주소가 없습니다</div>';
     }else{
@@ -741,7 +748,7 @@ function getMaptilerLayerFactory(){
       const state = document.getElementById('cctvState');
       if(window.Hls && Hls.isSupported()){
         activeHls = new Hls();
-        activeHls.loadSource(streamUrl);   // ← 여기 streamUrl
+        activeHls.loadSource(streamUrl);
         activeHls.attachMedia(video);
         activeHls.on(Hls.Events.MANIFEST_PARSED, () => { state?.remove(); video.play().catch(()=>{}); });
         activeHls.on(Hls.Events.ERROR, (_, d) => {
@@ -750,7 +757,7 @@ function getMaptilerLayerFactory(){
           }
         });
       }else if(video.canPlayType('application/vnd.apple.mpegurl')){
-        video.src = streamUrl;             // ← 여기도 streamUrl
+        video.src = streamUrl;
         video.addEventListener('loadedmetadata', () => state?.remove());
         video.play().catch(()=>{});
       }else{
@@ -774,13 +781,53 @@ function getMaptilerLayerFactory(){
   const listItems = document.getElementById('listItems');
   const listSearch = document.getElementById('listSearch');
 
-  function renderList(filterText){
+  function formatViewers(n) {
+    if (n == null || n === '') return '-';
+    const num = Number(n);
+    if (!Number.isFinite(num)) return '-';
+    return num.toLocaleString('ko-KR') + '명';
+  }
+
+  function getCamVideoId(cam) {
+    return cam.videoId || null;
+  }
+
+  async function fetchConcurrentViewers(videoId) {
+    if (!videoId || !YOUTUBE_API_KEY) return null;
+    const cached = viewerCache.get(videoId);
+    if (cached && Date.now() - cached.ts < 60_000) return cached.count;
+    try {
+      const url =
+        'https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=' +
+        encodeURIComponent(videoId) +
+        '&key=' + encodeURIComponent(YOUTUBE_API_KEY);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('yt ' + res.status);
+      const data = await res.json();
+      const item = data.items && data.items[0];
+      const raw = item && item.liveStreamingDetails && item.liveStreamingDetails.concurrentViewers;
+      const count = raw != null ? Number(raw) : null;
+      viewerCache.set(videoId, { count, ts: Date.now() });
+      return count;
+    } catch (e) {
+      console.warn('시청자 수 조회 실패', videoId, e.message);
+      return null;
+    }
+  }
+
+  async function renderList(filterText){
     const q = (filterText || '').trim().toLowerCase();
     listItems.innerHTML = '';
     let count = 0;
-    cams.filter(c => !q || c.name.toLowerCase().includes(q)).forEach(c => {
+    const filtered = cams.filter(c => !q || c.name.toLowerCase().includes(q));
+
+    for (const c of filtered) {
       const li = document.createElement('li');
-      li.innerHTML = `<span class="tag"></span><span class="nm">${c.name}</span>`;
+      const vid = getCamVideoId(c) || '';
+      li.innerHTML =
+        `<span class="tag"></span>` +
+        `<span class="nm">${c.name}</span>` +
+        `<span class="viewers" data-vid="${vid}">…</span>`;
       li.addEventListener('click', () => {
         map.flyTo([c.lat, c.lng], 15, { duration: 0.6 });
         const marker = camMarkers.get(c);
@@ -789,7 +836,8 @@ function getMaptilerLayerFactory(){
       });
       listItems.appendChild(li);
       count++;
-    });
+    }
+
     if(cctvOn){
       cctvLayer.eachLayer(marker => {
         const ll = marker.getLatLng();
@@ -797,7 +845,10 @@ function getMaptilerLayerFactory(){
         if(q && !name.toLowerCase().includes(q)) return;
         const li = document.createElement('li');
         li.className = 'is-cctv';
-        li.innerHTML = `<span class="tag"></span><span class="nm">${name}</span>`;
+        li.innerHTML =
+          `<span class="tag"></span>` +
+          `<span class="nm">${name}</span>` +
+          `<span class="viewers">-</span>`;
         li.addEventListener('click', () => {
           map.flyTo(ll, Math.max(map.getZoom(), 15), { duration: 0.6 });
           marker.fire('click');
@@ -807,10 +858,25 @@ function getMaptilerLayerFactory(){
         count++;
       });
     }
+
     if(!count){
       listItems.innerHTML = '<li class="list-empty" style="cursor:default">검색 결과가 없습니다</li>';
+      return;
+    }
+
+    const viewerEls = listItems.querySelectorAll('.viewers[data-vid]');
+    for (const el of viewerEls) {
+      const vid = el.getAttribute('data-vid');
+      if (!vid) {
+        el.textContent = '-';
+        continue;
+      }
+      const n = await fetchConcurrentViewers(vid);
+      el.textContent = formatViewers(n);
+      if (n != null) el.classList.add('has-count');
     }
   }
+
   document.getElementById('listBtn').addEventListener('click', () => {
     listPanel.classList.toggle('open');
     if(listPanel.classList.contains('open')) renderList(listSearch.value);
@@ -910,6 +976,22 @@ function getMaptilerLayerFactory(){
       setTimeout(() => { btnCopy.textContent = '코드 복사'; btnCopy.classList.remove('copied'); }, 1600);
     }catch(err){
       btnCopy.textContent = '복사 실패 — 직접 선택해 복사하세요';
+    }
+  });
+
+  // ESC: 모달 → 영상 패널 → 목록 순으로 닫기
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (modalOverlay.classList.contains('show')) {
+      closeModal();
+      return;
+    }
+    if (panel.classList.contains('open')) {
+      closeCam();
+      return;
+    }
+    if (listPanel.classList.contains('open')) {
+      listPanel.classList.remove('open');
     }
   });
 
