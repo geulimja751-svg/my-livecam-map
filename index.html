@@ -28,7 +28,6 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Malgun Gothic', sans-serif;
     overflow:hidden;
   }
-  /* 지도/UI 드래그 시 텍스트 선택 방지 */
   body, #map, .topbar, .style-switch, .add-btn, .count-pill,
   .list-panel, .panel, .hint, .pick-hint {
     -webkit-user-select: none;
@@ -413,12 +412,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js"></script>
 <script>
   const MAPTILER_KEY = 'EhogGAwYASE0hk398mb8';
-  // YouTube Data API v3 키 (동시 시청자 수). 비우면 목록에 "-" 표시
   const YOUTUBE_API_KEY = 'AIzaSyBbGHS7EXSuj1t9V187FIr1flIfDMec3xA';
 
   const cams = [
     // ===== 부산 =====
-    { name: "부산항대교 전망", lat: 35.1046, lng: 129.0768, videoId: "jfKfPfyJRdk", desc: "부산항대교 인근 상시 라이브 스트림 예시" },
     { name: "해운대 해수욕장", lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", desc: "해운대 해변가 실시간 화면 예시" },
     { name: "송정 해수욕장", lat: 35.177636, lng: 129.196488, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ollahotel1585&keyword=%EC%86%A1%EC%A0%95", desc: "올라호텔에서 송정 해수욕장 바라보는 뷰" },
     { name: "송정 해수욕장 파라노마", lat: 35.17574, lng: 129.1964, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KoreaWalkingToursTV_KWTT&keyword=%EC%86%A1%EC%A0%95%ED%95%B4%EC%88%98%EC%9A%95%EC%9E%A5", desc: "송정 해수욕장 파라노마" },
@@ -427,10 +424,8 @@
     { name: "광안대교 라이브캠", lat: 35.142713, lng: 129.117057, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@BusanLive&keyword=광안대교", desc: "설명 없음" },
     { name: "광안대교 중앙", lat: 35.147592, lng: 129.1302, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=상부", desc: "광안대교 상부 현수교 중앙" },
     { name: "부경대학교", lat: 35.13458, lng: 129.104934, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@PuKyongNationalUniversity&keyword=%EB%B6%80%EA%B2%BD%EB%8C%80%ED%95%99%EA%B5%90", desc: "부경대학교 실시간" },
-
     // ===== 대전 =====
     { name: "대전엑스포과학공원 한빛광장", lat: 36.375896, lng: 127.388113, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=대전", desc: "대전엑스포과학공원 한빛광장" },
-
     // ===== 서울 =====
     { name: "서울 동대문 DDP", lat: 37.566198, lng: 127.008337, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DDPLiveSeoul&keyword=LOFI", desc: "서울 동대문 디자인 플라자" },
     { name: "한강 잠실대교", lat: 37.5237, lng: 127.092043, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=잠실대교", desc: "한강 잠실대교" },
@@ -447,17 +442,14 @@
     { name: "홍대입구역 4번 출구", lat: 37.558336, lng: 126.925808, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@hongdaelive&keyword=Hongdae", desc: "홍대입구역 4번 출구" },
     { name: "가양대교", lat: 37.573443, lng: 126.864109, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%EC%84%9C%EC%9A%B8%ED%95%9C%EA%B0%95%EB%9D%BC%EC%9D%B4%EB%B8%8C&keyword=432", desc: "서울 한강 라이브 카메라 | 강변북로, 가양대교, 한강 전경 실시간 스트리밍" },
     { name: "반포대교 공원길", lat: 37.513487, lng: 126.996953, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Live_HanGang&keyword=한강", desc: "반포대교, 세빛섬, 올림픽대로, 강변북로, 그리고 상징적인 63빌딩이 보이는 멀리 떨어진 여의도 스카이라인" },
-
     { name: "동호대교", lat: 37.536861, lng: 127.020525, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@seoulvibes_live&keyword=로파이", desc: "동호대교" },
-
     // ===== 오사카 =====
     { name: "오사카성", lat: 34.687413, lng: 135.525804, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tvosakanews&keyword=Castle", desc: "오사카성" },
     { name: "오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", desc: "카니도라쿠 도톤보리점 -> 에비스바시 다리" },
     { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", desc: "에비스바시 -> 난바 방향 상점가" },
     { name: "글리코상", lat: 34.669072, lng: 135.501305, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@mbsnews&keyword=Dotonbori", desc: "글리코상" },
-    { name: "츠텐카쿠", lat: 34.652631, lng: 135.506382, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ebisuhotel&keyword=osaka", desc: "츠텐카쿠는 오사카부 오사카시 나니와구 신세계에 서 있는 높이 108미터의 전망탑입니다. 1956년에 재건된 2대째의 탑으로, 신세계의 상징으로서 오사카를 대표하는 랜드마크의 하나가 되고 있습니다. 전망대 5층에는 엔기물의 복의 신 ‘비리켄상’이 진좌하고 있으며, 발바닥을 드리면 행복이 찾아온 것으로 알려져 국내외 관광객들에게 인기를 끌고 있습니다. 츠텐카쿠의 주위에 펼쳐지는 신세계는 쇼와 레트로한 분위기가 짙게 남아 있는 시타마치 에리어로, 꼬치 커틀릿의 유명한 가게가 늘어서 있는 「꼬치 커틀릿 발상지」로서 전국적으로 알려져 있습니다. 오사카의 서민 문화를 체감할 수 있는 지역으로 국내외 관광객이 많이 방문하고 있으며, 독특한 활기와 시타마치 정서가 매력의 명소입니다." },
+    { name: "츠텐카쿠", lat: 34.652631, lng: 135.506382, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ebisuhotel&keyword=osaka", desc: "츠텐카쿠는 오사카부 오사카시 나니와구 신세계에 서 있는 높이 108미터의 전망탑입니다." },
     { name: "우메다 스카이 빌딩 공중정원", lat: 34.698565, lng: 135.490383, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sports_mainichi&keyword=Umeda", desc: "오사카시 북구 우메다에 있는 매일신문 오사카 본사에서, 오사카·우메다 ‘우메키타 지역’의 교통 상황과 날씨 모습" },
-
     // ===== 도쿄(신주쿠) =====
     { name: "가부키초 이치반가이", lat: 35.693869, lng: 139.701031, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-1&keyword=24", desc: "가부키초 이치반가이" },
     { name: "가부키초 1번가", lat: 35.6940837, lng: 139.7011244, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-2&keyword=Channel", desc: "가부키초 1번가" },
@@ -486,10 +478,7 @@
       },
       mapMaxZoom: 19
     },
-    clean: {
-      type: 'maptiler-raster',
-      mapMaxZoom: 19
-    },
+    clean: { type: 'maptiler-raster', mapMaxZoom: 19 },
     satellite: {
       type: 'raster',
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -505,34 +494,22 @@
   function createCartoLayer() {
     return L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
-      }
+      { attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }
     );
   }
 
   function createStyleLayer(name) {
     const s = styles[name];
     if (s.type === 'maptiler-raster') {
-      if (!MAPTILER_KEY) {
-        console.warn('MapTiler 키 없음 → CARTO');
-        return createCartoLayer();
-      }
-      if (typeof L.maplibreGL !== 'function') {
-        console.warn('maplibre-gl-leaflet 로드 안 됨 → CARTO');
-        return createCartoLayer();
-      }
+      if (!MAPTILER_KEY) return createCartoLayer();
+      if (typeof L.maplibreGL !== 'function') return createCartoLayer();
       const gl = L.maplibreGL({
         style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
         attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
       });
       gl.on('add', () => {
         const mMap = gl.getMaplibreMap();
-        const applyLang = () => {
-          if (typeof mMap.setLanguage === 'function') mMap.setLanguage('ko');
-        };
+        const applyLang = () => { if (typeof mMap.setLanguage === 'function') mMap.setLanguage('ko'); };
         if (mMap.isStyleLoaded && mMap.isStyleLoaded()) applyLang();
         else mMap.once('load', applyLang);
       });
@@ -550,25 +527,17 @@
     document.querySelectorAll('#styleSwitch button').forEach(b =>
       b.classList.toggle('active', b.dataset.style === name)
     );
-    try {
-      if (tileLayer) map.removeLayer(tileLayer);
-    } catch (e) {
-      console.warn('이전 레이어 제거 실패', e);
-    }
+    try { if (tileLayer) map.removeLayer(tileLayer); } catch (e) {}
     try {
       tileLayer = createStyleLayer(name).addTo(map);
       currentStyle = name;
       map.setMaxZoom(styles[name].mapMaxZoom);
-      if (map.getZoom() > styles[name].mapMaxZoom) {
-        map.setZoom(styles[name].mapMaxZoom);
-      }
+      if (map.getZoom() > styles[name].mapMaxZoom) map.setZoom(styles[name].mapMaxZoom);
     } catch (e) {
-      console.error('스타일 전환 실패', e);
       tileLayer = createCartoLayer().addTo(map);
       currentStyle = name;
     }
   }
-
   document.getElementById('styleSwitch').addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (btn) switchStyle(btn.dataset.style);
@@ -580,12 +549,13 @@
   let activeHls = null;
   const camMarkers = new Map();
   const viewerCache = new Map();
+  const videoIdCache = new Map();
+  const channelIdCache = new Map();
 
   function stopVideo(){
     if(activeHls){ try{ activeHls.destroy(); }catch(e){} activeHls = null; }
     document.getElementById('videoWrap').innerHTML = '';
   }
-
   function stripEmbed(u){
     try{
       const url = new URL(u);
@@ -657,14 +627,11 @@
     camMarkers.set(cam, marker);
     return marker;
   }
-
   function updateCount(){
     camCountEl.textContent = cams.length + (cctvOn ? cctvLayer.getLayers().length : 0);
     if(listPanel.classList.contains('open')) renderList(listSearch.value);
   }
-
   cams.forEach(addCamMarker);
-
   (function fitAllCams() {
     if (!cams.length) { map.setView([35.16, 129.15], 12); return; }
     const bounds = L.latLngBounds(cams.map(c => [c.lat, c.lng]));
@@ -685,7 +652,6 @@
       iconSize: [36, 36],
     }),
   });
-
   function itsUrl(bounds){
     const p = new URLSearchParams({
       apiKey: ITS_API_KEY, type: 'all', cctvType: '1',
@@ -694,7 +660,6 @@
     });
     return `${ITS_ENDPOINT}?${p.toString()}`;
   }
-
   async function loadCctvInView(){
     if(!cctvOn || cctvLoading) return;
     if(map.getZoom() < ITS_MIN_ZOOM){ cctvLayer.clearLayers(); updateCount(); return; }
@@ -722,7 +687,6 @@
       cctvLoading = false;
     }
   }
-
   function openCctv(c, marker){
     if(activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = marker;
@@ -767,7 +731,6 @@
     panel.classList.add('open');
     hint.classList.add('hidden');
   }
-
   function toggleCctv(){
     cctvOn = !cctvOn;
     document.getElementById('cctvBtn').classList.toggle('active', cctvOn);
@@ -788,8 +751,102 @@
     return num.toLocaleString('ko-KR') + '명';
   }
 
-  function getCamVideoId(cam) {
-    return cam.videoId || null;
+  function parseLiveRedirect(url) {
+    try {
+      const u = new URL(url);
+      if (!/live-redirect/i.test(u.href)) return null;
+      const channel = u.searchParams.get('channel');
+      const keyword = (u.searchParams.get('keyword') || '').trim();
+      if (!channel) return null;
+      return { channel, keyword };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function resolveChannelId(channelParam) {
+    if (!YOUTUBE_API_KEY) return null;
+    const handle = String(channelParam).replace(/^@/, '').trim();
+    if (!handle) return null;
+    const cacheKey = '@' + handle;
+    if (channelIdCache.has(cacheKey)) return channelIdCache.get(cacheKey);
+    try {
+      let res = await fetch(
+        'https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=' +
+          encodeURIComponent(handle) +
+          '&key=' + encodeURIComponent(YOUTUBE_API_KEY)
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const id = data.items && data.items[0] && data.items[0].id;
+        if (id) {
+          channelIdCache.set(cacheKey, id);
+          return id;
+        }
+      }
+      res = await fetch(
+        'https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=1&q=' +
+          encodeURIComponent('@' + handle) +
+          '&key=' + encodeURIComponent(YOUTUBE_API_KEY)
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const item = data.items && data.items[0];
+      const id = item && (item.snippet && item.snippet.channelId
+        ? item.snippet.channelId
+        : (item.id && item.id.channelId));
+      if (id) channelIdCache.set(cacheKey, id);
+      return id || null;
+    } catch (e) {
+      console.warn('channelId 조회 실패', handle, e.message);
+      return null;
+    }
+  }
+
+  async function resolveVideoIdFromLiveRedirect(externalUrl) {
+    const parsed = parseLiveRedirect(externalUrl);
+    if (!parsed || !YOUTUBE_API_KEY) return null;
+    const cacheKey = parsed.channel + '|' + parsed.keyword;
+    const cached = videoIdCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < 5 * 60_000) return cached.videoId;
+
+    const channelId = await resolveChannelId(parsed.channel);
+    if (!channelId) return null;
+    try {
+      let api =
+        'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&eventType=live&maxResults=5&channelId=' +
+        encodeURIComponent(channelId) +
+        '&key=' + encodeURIComponent(YOUTUBE_API_KEY);
+      if (parsed.keyword) api += '&q=' + encodeURIComponent(parsed.keyword);
+      const res = await fetch(api);
+      if (!res.ok) throw new Error('search ' + res.status);
+      const data = await res.json();
+      const items = data.items || [];
+      if (!items.length) {
+        videoIdCache.set(cacheKey, { videoId: null, ts: Date.now() });
+        return null;
+      }
+      let chosen = items[0];
+      if (parsed.keyword) {
+        const kw = parsed.keyword.toLowerCase();
+        const hit = items.find(it =>
+          ((it.snippet && it.snippet.title) || '').toLowerCase().includes(kw)
+        );
+        if (hit) chosen = hit;
+      }
+      const videoId = chosen.id && chosen.id.videoId;
+      videoIdCache.set(cacheKey, { videoId: videoId || null, ts: Date.now() });
+      return videoId || null;
+    } catch (e) {
+      console.warn('live-redirect videoId 해석 실패', e.message);
+      return null;
+    }
+  }
+
+  async function resolveCamVideoId(cam) {
+    if (cam.videoId) return cam.videoId;
+    if (cam.externalUrl) return resolveVideoIdFromLiveRedirect(cam.externalUrl);
+    return null;
   }
 
   async function fetchConcurrentViewers(videoId) {
@@ -823,11 +880,10 @@
 
     for (const c of filtered) {
       const li = document.createElement('li');
-      const vid = getCamVideoId(c) || '';
       li.innerHTML =
         `<span class="tag"></span>` +
         `<span class="nm">${c.name}</span>` +
-        `<span class="viewers" data-vid="${vid}">…</span>`;
+        `<span class="viewers">…</span>`;
       li.addEventListener('click', () => {
         map.flyTo([c.lat, c.lng], 15, { duration: 0.6 });
         const marker = camMarkers.get(c);
@@ -864,9 +920,12 @@
       return;
     }
 
-    const viewerEls = listItems.querySelectorAll('.viewers[data-vid]');
-    for (const el of viewerEls) {
-      const vid = el.getAttribute('data-vid');
+    const rows = listItems.querySelectorAll('li:not(.is-cctv)');
+    for (let i = 0; i < rows.length && i < filtered.length; i++) {
+      const el = rows[i].querySelector('.viewers');
+      if (!el) continue;
+      const cam = filtered[i];
+      const vid = await resolveCamVideoId(cam);
       if (!vid) {
         el.textContent = '-';
         continue;
@@ -903,7 +962,6 @@
     mapEl.classList.toggle('picking', pickMode);
   }
   addBtn.addEventListener('click', () => togglePickMode());
-
   map.on('click', (e) => {
     if(!pickMode) return;
     pickedLatLng = e.latlng;
@@ -941,7 +999,6 @@
     modalOverlay.classList.remove('show');
     if(tempMarker){ map.removeLayer(tempMarker); tempMarker = null; }
   }
-
   document.getElementById('modalGenerate').addEventListener('click', () => {
     const name = document.getElementById('fName').value.trim() || '이름 없는 카메라';
     const urlRaw = document.getElementById('fUrl').value.trim();
@@ -967,7 +1024,6 @@
     cams.push(camData);
     updateCount();
   });
-
   btnCopy.addEventListener('click', async () => {
     try{
       await navigator.clipboard.writeText(codeText.textContent);
@@ -979,20 +1035,11 @@
     }
   });
 
-  // ESC: 모달 → 영상 패널 → 목록 순으로 닫기
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (modalOverlay.classList.contains('show')) {
-      closeModal();
-      return;
-    }
-    if (panel.classList.contains('open')) {
-      closeCam();
-      return;
-    }
-    if (listPanel.classList.contains('open')) {
-      listPanel.classList.remove('open');
-    }
+    if (modalOverlay.classList.contains('show')) { closeModal(); return; }
+    if (panel.classList.contains('open')) { closeCam(); return; }
+    if (listPanel.classList.contains('open')) listPanel.classList.remove('open');
   });
 
   (function initPanelResize() {
