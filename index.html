@@ -769,11 +769,19 @@
         (cam.externalUrl ? ' (cached)' : '');
 
       // 앱에서 강제로 mute=1을 넣지 않는다.
-      // playsinline을 유지하고 브라우저가 허용하면 소리와 함께 자동재생한다.
+      // YouTube iframe이 로딩되는 동안 검은 화면만 보이지 않도록
+      // 썸네일을 먼저 깔고, iframe 로드 완료 후 영상으로 전환한다.
+      const ytThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
       videoWrap.innerHTML =
-        `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&playsinline=1"
+        `<img src="${ytThumb}" alt="" class="video-placeholder" loading="eager"
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#000">
+         <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&playsinline=1"
+          loading="eager"
+          style="opacity:0;transition:opacity .12s ease"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen></iframe>`;
+          allowfullscreen
+          onload="this.style.opacity='1'; const p=this.previousElementSibling; if(p) p.style.opacity='0';"></iframe>`;
 
       openTabBtn.href = cam.externalUrl
         ? stripEmbed(cam.externalUrl)
