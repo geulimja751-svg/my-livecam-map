@@ -255,6 +255,7 @@
     min-width:2.8em; text-align:right;
   }
   .list-items li .viewers.has-count{ color:var(--accent); }
+  .list-items li .viewers.status-text{ font-size:9px; min-width:auto; white-space:nowrap; }
   .list-items li .btn-rid{
     flex-shrink:0; font-size:10px; padding:4px 7px; border-radius:6px;
     border:1px solid var(--line); background:transparent; color:var(--text-dim);
@@ -356,6 +357,7 @@
   const VIEWERS_SS_KEY = 'livecam-viewers-v1';
   const RESOLVED_KEY = 'livecam-resolved-v1';
   const RESOLVED_TTL = 12 * 60 * 60 * 1000; // 12시간
+  const RESOLVE_STATUS_TTL = 12 * 60 * 60 * 1000; // 라이브 없음/확인 실패 상태 12시간
   const VIEWER_MEM_TTL = 10 * 60 * 1000; // 10분
   const RESOLVE_TIMEOUT = 25000;
   const RESOLVE_CONCURRENCY = 2;
@@ -403,6 +405,30 @@
     saveResolvedMap(all);
   }
 
+  // live-redirect 자동 재확인 방지용 상태 캐시
+  // status: 'offline' = 현재 라이브 없음
+  //        'error'   = API/네트워크/할당량 등 확인 실패
+  function setResolveStatus(cam, status, message = '') {
+    const all = loadResolvedMap();
+    all[camKey(cam)] = {
+      status,
+      message,
+      ts: Date.now()
+    };
+    saveResolvedMap(all);
+  }
+
+  function getResolveStatus(cam) {
+    const row = loadResolvedMap()[camKey(cam)];
+    if (!row || !row.status) return null;
+
+    if (row.ts && Date.now() - row.ts > RESOLVE_STATUS_TTL) {
+      return null;
+    }
+
+    return row;
+  }
+
   /**
    * live-redirect?format=json 은 서버 HTML만 주므로
    * 숨은 iframe + postMessage 로 videoId 수신
@@ -430,8 +456,13 @@
         const d = e.data;
         if (!d || d.type !== 'live-redirect-result') return;
         cleanup();
-        if (d.ok && d.videoId) resolve(d.videoId);
-        else reject(new Error(d.message || d.error || '라이브 없음'));
+        if (d.ok && d.videoId) {
+          resolve(d.videoId);
+        } else {
+          const err = new Error(d.message || d.error || '라이브 없음');
+          err.code = d.error || 'unknown';
+          reject(err);
+        }
       }
       function cleanup() {
         if (done) return;
@@ -489,14 +520,14 @@
         const data = await res.json();
         for (const item of (data.items || [])) {
           const raw = item.liveStreamingDetails && item.liveStreamingDetails.concurrentViewers;
-          const count = raw != null ? Number(raw) : null;
+          const count = raw != null ? Number(raw) : 0;
           viewerCache.set(item.id, { count, ts: Date.now() });
           result[item.id] = count;
         }
         for (const id of chunk) {
           if (!(id in result)) {
-            viewerCache.set(id, { count: null, ts: Date.now() });
-            result[id] = null;
+            viewerCache.set(id, { count: 0, ts: Date.now() });
+            result[id] = 0;
           }
         }
       } catch (e) {
@@ -651,7 +682,8 @@
   async function openCam(cam, marker) {
     if (activeMarker) activeMarker.getElement()?.classList.remove('active');
     activeMarker = marker;
-    marker.getElement()?.classList.add('active');
+    marker?.getElement()?.classList.add('active');
+
     stopVideo();
     activeCamForPanel = cam;
 
@@ -671,35 +703,82 @@
     refreshBtn.disabled = false;
     refreshBtn.textContent = 'ID 갱신';
 
+    // 패널은 비동기 ID 해석을 기다리지 않고 즉시 연다.
+    panel.classList.add('open');
+    hint.classList.add('hidden');
+
     let videoId = getStoredVideoId(cam);
+
+    // 이미 "라이브 없음" 또는 "확인 실패" 상태로 기록된 카메라는
+    // 클릭할 때 자동으로 다시 live-redirect를 호출하지 않는다.
     if (!videoId && cam.externalUrl) {
-      videoWrap.innerHTML = '<div class="video-state"><div class="spin"></div><div>라이브 ID 해석 중…</div></div>';
+      const status = getResolveStatus(cam);
+
+      if (status?.status === 'offline') {
+        videoWrap.innerHTML =
+          '<div class="video-state"><div>현재 라이브 진행중이지 않음</div><small>하단의 ID 갱신 버튼으로 다시 확인할 수 있습니다.</small></div>';
+        panelSrc.textContent = 'live-redirect: 현재 라이브 없음 (캐시됨)';
+        openTabBtn.href = stripEmbed(cam.externalUrl);
+        return;
+      }
+
+      if (status?.status === 'error') {
+        videoWrap.innerHTML =
+          '<div class="video-state"><div>라이브 확인 실패</div><small>하단의 ID 갱신 버튼으로 다시 확인할 수 있습니다.</small></div>';
+        panelSrc.textContent = 'live-redirect: 확인 실패 (캐시됨)';
+        openTabBtn.href = stripEmbed(cam.externalUrl);
+        return;
+      }
+
+      videoWrap.innerHTML =
+        '<div class="video-state"><div class="spin"></div><div>라이브 ID 해석 중…</div></div>';
       panelSrc.textContent = 'resolving live-redirect…';
       openTabBtn.href = stripEmbed(cam.externalUrl);
+
       try {
         videoId = await ensureVideoId(cam, false);
+
+        // 정상적으로 ID를 찾았으면 이전 실패 상태를 제거한다.
+        const all = loadResolvedMap();
+        const key = camKey(cam);
+        if (all[key]?.status) {
+          all[key] = { videoId, ts: Date.now() };
+          saveResolvedMap(all);
+        }
       } catch (e) {
-        console.warn(e);
-        // 폴백: embed iframe
-        let embedUrl = cam.externalUrl;
-        if (!/[?&]embed=/.test(embedUrl)) embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'embed=1';
-        videoWrap.innerHTML =
-          `<iframe src="${embedUrl}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen
-            style="position:absolute;inset:0;width:100%;height:100%;border:0;background:#000"></iframe>`;
-        panelSrc.textContent = 'source: ' + stripEmbed(cam.externalUrl) + ' (해석 실패 → embed)';
-        panel.classList.add('open');
-        hint.classList.add('hidden');
+        console.warn('resolve', cam.name, e.message);
+
+        if (e.code === 'no_live') {
+          setResolveStatus(cam, 'offline', '현재 라이브 진행중이지 않음');
+          videoWrap.innerHTML =
+            '<div class="video-state"><div>현재 라이브 진행중이지 않음</div><small>목록의 갱신 버튼으로 다시 확인할 수 있습니다.</small></div>';
+          panelSrc.textContent = 'live-redirect: 현재 라이브 없음';
+        } else {
+          setResolveStatus(cam, 'error', e.message || '라이브 확인 실패');
+          videoWrap.innerHTML =
+            '<div class="video-state"><div>라이브 확인 실패</div><small>목록의 갱신 버튼으로 다시 확인할 수 있습니다.</small></div>';
+          panelSrc.textContent = 'live-redirect: 확인 실패';
+        }
         return;
       }
     }
 
     if (videoId) {
-      panelSrc.textContent = 'source: youtube.com/watch?v=' + videoId + (cam.externalUrl ? ' (cached)' : '');
+      panelSrc.textContent =
+        'source: youtube.com/watch?v=' + videoId +
+        (cam.externalUrl ? ' (cached)' : '');
+
+      // 앱에서 강제로 mute=1을 넣지 않는다.
+      // playsinline을 유지하고 브라우저가 허용하면 소리와 함께 자동재생한다.
       videoWrap.innerHTML =
-        `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1"
+        `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&playsinline=1"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen></iframe>`;
-      openTabBtn.href = cam.externalUrl ? stripEmbed(cam.externalUrl) : ('https://www.youtube.com/watch?v=' + videoId);
+
+      openTabBtn.href = cam.externalUrl
+        ? stripEmbed(cam.externalUrl)
+        : ('https://www.youtube.com/watch?v=' + videoId);
+
       fetchOneViewer(videoId).then(n => {
         if (activeCamForPanel === cam) setPanelViewers(n);
       });
@@ -708,9 +787,6 @@
       videoFooter.style.display = 'none';
       panelSrc.textContent = '';
     }
-
-    panel.classList.add('open');
-    hint.classList.add('hidden');
   }
 
   document.getElementById('panelRefreshBtn').addEventListener('click', async () => {
@@ -720,16 +796,30 @@
     btn.disabled = true;
     btn.textContent = '갱신 중…';
     clearStoredVideoId(cam);
+
+    // 이전의 offline/error 상태도 제거하고 강제로 다시 확인한다.
     try {
+      const all = loadResolvedMap();
+      delete all[camKey(cam)];
+      saveResolvedMap(all);
+
       const id = await ensureVideoId(cam, true);
       const marker = camMarkers.get(cam);
-      if (marker) openCam(cam, marker);
-      else {
+
+      if (marker) {
+        openCam(cam, marker);
+      } else {
         setStoredVideoId(cam, id);
         btn.textContent = 'ID 갱신';
         btn.disabled = false;
       }
     } catch (e) {
+      if (e.code === 'no_live') {
+        setResolveStatus(cam, 'offline', '현재 라이브 진행중이지 않음');
+      } else {
+        setResolveStatus(cam, 'error', e.message || '라이브 확인 실패');
+      }
+
       alert('갱신 실패: ' + (e.message || e));
       btn.textContent = 'ID 갱신';
       btn.disabled = false;
@@ -882,8 +972,26 @@
         const cam = missingCams[idx];
         meta.textContent = `ID 해석 ${idx + 1}/${missingCams.length}…`;
         meta.className = 'list-meta warn';
-        try { await ensureVideoId(cam, false); }
-        catch (e) { console.warn('resolve', cam.name, e.message); }
+        try {
+          await ensureVideoId(cam, false);
+
+          // 정상적으로 라이브 ID를 찾았으면 실패 상태가 남아 있지 않도록 정리
+          const all = loadResolvedMap();
+          const key = camKey(cam);
+          if (all[key]?.status) {
+            all[key] = { videoId: all[key].videoId, ts: Date.now() };
+            saveResolvedMap(all);
+          }
+        } catch (e) {
+          console.warn('resolve', cam.name, e.message);
+
+          if (e.code === 'no_live') {
+            setResolveStatus(cam, 'offline', '현재 라이브 진행중이지 않음');
+          } else {
+            // 429 할당량 초과, 네트워크 오류 등도 자동 재시도하지 않도록 기록
+            setResolveStatus(cam, 'error', e.message || '라이브 확인 실패');
+          }
+        }
       }
     }
     const workers = [];
@@ -904,19 +1012,28 @@
     for (const c of filtered) {
       const li = document.createElement('li');
       const vid = getStoredVideoId(c);
+      const resolveStatus = getResolveStatus(c);
+
       if (vid) idsForBatch.push(vid);
+
       const cachedV = vid && ss[vid] != null ? ss[vid] : (ss[camKey(c)] != null ? ss[camKey(c)] : null);
       let initial = '-';
       let has = false;
-      if (cachedV != null && cachedV !== '') {
+
+      if (resolveStatus?.status === 'offline') {
+        initial = '라이브 진행중이지 않음';
+      } else if (resolveStatus?.status === 'error') {
+        initial = '확인 실패';
+      } else if (cachedV != null && cachedV !== '') {
         initial = formatViewers(cachedV);
         has = !!initial;
       } else if (vid) {
         initial = '…';
       }
+      const statusClass = resolveStatus ? ' status-text' : '';
       li.innerHTML =
         `<span class="tag"></span><span class="nm">${c.name}</span>` +
-        `<span class="viewers${has ? ' has-count' : ''}">${initial}</span>` +
+        `<span class="viewers${has ? ' has-count' : ''}${statusClass}">${initial}</span>` +
         (c.externalUrl
           ? `<button type="button" class="btn-rid" data-refresh="1" title="live-redirect 재해석">갱신</button>`
           : '');
@@ -933,14 +1050,28 @@
           ridBtn.disabled = true;
           ridBtn.textContent = '…';
           clearStoredVideoId(c);
+
           try {
+            // 수동 갱신이므로 이전 offline/error 상태를 지우고 강제 확인
+            const all = loadResolvedMap();
+            delete all[camKey(c)];
+            saveResolvedMap(all);
+
             await ensureVideoId(c, true);
+
             ridBtn.textContent = 'OK';
             setTimeout(() => renderList(listSearch.value), 300);
           } catch (e) {
+            if (e.code === 'no_live') {
+              setResolveStatus(c, 'offline', '현재 라이브 진행중이지 않음');
+            } else {
+              setResolveStatus(c, 'error', e.message || '라이브 확인 실패');
+            }
+
             ridBtn.textContent = '실패';
             ridBtn.disabled = false;
-            console.warn(e);
+            console.warn('수동 resolve 실패', c.name, e.message);
+            setTimeout(() => renderList(listSearch.value), 300);
           }
         });
       }
@@ -993,8 +1124,19 @@
     saveViewersToSS(nextSS);
     updateListMeta();
 
-    // 캐시 없는 externalUrl 순차 해석 (백그라운드)
-    const missing = filtered.filter(c => c.externalUrl && !getStoredVideoId(c));
+    // 캐시 없는 externalUrl만 자동으로 1회 확인한다.
+    // 이미 offline/error 상태가 저장된 카메라는 다시 조회하지 않는다.
+    const missing = filtered.filter(c => {
+      if (!c.externalUrl || getStoredVideoId(c)) return false;
+
+      const status = getResolveStatus(c);
+      if (status && (status.status === 'offline' || status.status === 'error')) {
+        return false;
+      }
+
+      return true;
+    });
+
     if (missing.length) runResolveQueue(missing);
   }
 
