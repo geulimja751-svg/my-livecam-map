@@ -255,6 +255,34 @@
     min-width:2.8em; text-align:right;
   }
   .list-items li .viewers.has-count{ color:var(--accent); }
+
+  /* 목록 마우스 호버 라이브 미리보기 */
+  .list-hover-preview{
+    position:fixed;
+    z-index:10050;
+    width:360px;
+    height:203px;
+    background:#000;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 12px 35px rgba(0,0,0,.55);
+    pointer-events:none;
+    opacity:0;
+    transform:scale(.98);
+    transition:opacity .12s ease, transform .12s ease;
+  }
+  .list-hover-preview.show{
+    opacity:1;
+    transform:scale(1);
+  }
+  .list-hover-preview iframe{
+    width:100%;
+    height:100%;
+    border:0;
+    display:block;
+    background:#000;
+  }
   .list-items li .viewers.status-text{ font-size:9px; min-width:auto; white-space:nowrap; }
   .list-items li .btn-rid{
     flex-shrink:0; font-size:10px; padding:4px 7px; border-radius:6px;
@@ -769,19 +797,10 @@
         (cam.externalUrl ? ' (cached)' : '');
 
       // 앱에서 강제로 mute=1을 넣지 않는다.
-      // YouTube iframe이 로딩되는 동안 검은 화면만 보이지 않도록
-      // 썸네일을 먼저 깔고, iframe 로드 완료 후 영상으로 전환한다.
-      const ytThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-
       videoWrap.innerHTML =
-        `<img src="${ytThumb}" alt="" class="video-placeholder" loading="eager"
-          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#000">
-         <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&playsinline=1"
-          loading="eager"
-          style="opacity:0;transition:opacity .12s ease"
+        `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&playsinline=1"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen
-          onload="this.style.opacity='1'; const p=this.previousElementSibling; if(p) p.style.opacity='0';"></iframe>`;
+          allowfullscreen></iframe>`;
 
       openTabBtn.href = cam.externalUrl
         ? stripEmbed(cam.externalUrl)
@@ -1010,8 +1029,107 @@
     if (listPanel.classList.contains('open')) renderList(listSearch.value);
   }
 
+
+  // 목록 호버 미리보기
+  // YouTube Data API를 호출하지 않고, 이미 확보된 videoId가 있는 경우에만 iframe을 띄운다.
+  let listHoverPreview = null;
+  let listHoverTimer = null;
+  let listHoverCam = null;
+  let listHoverLi = null;
+
+  function closeListHoverPreview() {
+    if (listHoverTimer) {
+      clearTimeout(listHoverTimer);
+      listHoverTimer = null;
+    }
+
+    if (listHoverPreview) {
+      listHoverPreview.remove();
+      listHoverPreview = null;
+    }
+
+    listHoverCam = null;
+    listHoverLi = null;
+  }
+
+  function positionListHoverPreview(li) {
+    if (!listHoverPreview) return;
+
+    const r = li.getBoundingClientRect();
+    const gap = 10;
+    const w = 360;
+    const h = 203;
+
+    let left = r.right + gap;
+    let top = r.top;
+
+    // 오른쪽 공간이 부족하면 목록 왼쪽에 표시
+    if (left + w > window.innerWidth - 8) {
+      left = r.left - w - gap;
+    }
+
+    // 화면 아래로 넘어가면 위쪽으로 보정
+    if (top + h > window.innerHeight - 8) {
+      top = window.innerHeight - h - 8;
+    }
+
+    if (top < 8) top = 8;
+
+    listHoverPreview.style.left = `${Math.round(left)}px`;
+    listHoverPreview.style.top = `${Math.round(top)}px`;
+  }
+
+  function openListHoverPreview(cam, li) {
+    const videoId = getStoredVideoId(cam) || cam.videoId;
+
+    // API 호출/ID 자동 해석은 하지 않는다.
+    // 이미 videoId가 확보된 방송만 호버 미리보기를 보여준다.
+    if (!videoId) return;
+
+    closeListHoverPreview();
+
+    listHoverCam = cam;
+    listHoverLi = li;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'list-hover-preview';
+
+    const iframe = document.createElement('iframe');
+    iframe.src =
+      `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&controls=0&rel=0`;
+    iframe.allow =
+      'autoplay; encrypted-media; picture-in-picture';
+    iframe.allowFullscreen = true;
+
+    wrap.appendChild(iframe);
+    document.body.appendChild(wrap);
+    listHoverPreview = wrap;
+
+    positionListHoverPreview(li);
+
+    requestAnimationFrame(() => {
+      if (listHoverPreview === wrap) wrap.classList.add('show');
+    });
+  }
+
+  function bindListHoverPreview(li, cam) {
+    li.addEventListener('mouseenter', () => {
+      closeListHoverPreview();
+
+      // 너무 빠르게 지나가는 경우 iframe을 만들지 않도록 350ms 지연
+      listHoverTimer = setTimeout(() => {
+        if (li.matches(':hover')) {
+          openListHoverPreview(cam, li);
+        }
+      }, 350);
+    });
+
+    li.addEventListener('mouseleave', closeListHoverPreview);
+  }
+
   async function renderList(filterText) {
     const q = (filterText || '').trim().toLowerCase();
+    closeListHoverPreview();
     listItems.innerHTML = '';
     const filtered = cams.filter(c => !q || c.name.toLowerCase().includes(q));
     const ss = loadViewersFromSS();
@@ -1051,6 +1169,7 @@
         if (marker) openCam(c, marker);
         listPanel.classList.remove('open');
       });
+      bindListHoverPreview(li, c);
       const ridBtn = li.querySelector('.btn-rid');
       if (ridBtn) {
         ridBtn.addEventListener('click', async (ev) => {
@@ -1152,8 +1271,17 @@
     listPanel.classList.toggle('open');
     if (listPanel.classList.contains('open')) renderList(listSearch.value);
   });
-  document.getElementById('listClose').addEventListener('click', () => listPanel.classList.remove('open'));
+  document.getElementById('listClose').addEventListener('click', () => {
+    closeListHoverPreview();
+    listPanel.classList.remove('open');
+  });
   listSearch.addEventListener('input', () => renderList(listSearch.value));
+
+
+  window.addEventListener('resize', () => {
+    if (listHoverPreview && listHoverLi) positionListHoverPreview(listHoverLi);
+  });
+  window.addEventListener('scroll', closeListHoverPreview, true);
 
   // pick / modal
   const addBtn = document.getElementById('addBtn');
