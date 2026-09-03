@@ -482,6 +482,10 @@
       }, RESOLVE_TIMEOUT);
 
       function onMsg(e) {
+        
+        // 내가 만든 이 resolver iframe에서 온 응답만 받는다
+        if (e.source !== iframe.contentWindow) return;
+        
         const d = e.data;
         if (!d || d.type !== 'live-redirect-result') return;
         cleanup();
