@@ -1153,13 +1153,46 @@
     const idsForBatch = [];
 
     for (const c of filtered) {
+      const vid = getStoredVideoId(c);
+      if (vid) idsForBatch.push(vid);
+    }
+
+    // 시청자 수를 먼저 가져온 뒤 내림차순 정렬
+    const batch = await fetchConcurrentViewersBatch(idsForBatch);
+    const nextSS = { ...ss };
+
+    function getViewerCount(c) {
+      const vid = getStoredVideoId(c);
+      if (!vid) return null;
+      if (batch[vid] != null) return batch[vid];
+      if (ss[vid] != null) return ss[vid];
+      if (ss[camKey(c)] != null) return ss[camKey(c)];
+      return null;
+    }
+
+    // 시청자 수 내림차순 (숫자 있는 것 우선, 없으면 맨 아래)
+    // offline/error 상태도 뒤로 보냄
+    const sorted = [...filtered].sort((a, b) => {
+      const statusA = getResolveStatus(a);
+      const statusB = getResolveStatus(b);
+      const offlineA = statusA?.status === 'offline' || statusA?.status === 'error';
+      const offlineB = statusB?.status === 'offline' || statusB?.status === 'error';
+      if (offlineA && !offlineB) return 1;
+      if (!offlineA && offlineB) return -1;
+
+      const na = getViewerCount(a);
+      const nb = getViewerCount(b);
+      const va = na != null && Number.isFinite(Number(na)) ? Number(na) : -1;
+      const vb = nb != null && Number.isFinite(Number(nb)) ? Number(nb) : -1;
+      return vb - va;
+    });
+
+    for (const c of sorted) {
       const li = document.createElement('li');
       const vid = getStoredVideoId(c);
       const resolveStatus = getResolveStatus(c);
 
-      if (vid) idsForBatch.push(vid);
-
-      const cachedV = vid && ss[vid] != null ? ss[vid] : (ss[camKey(c)] != null ? ss[camKey(c)] : null);
+      const n = getViewerCount(c);
       let initial = '-';
       let has = false;
 
@@ -1167,8 +1200,8 @@
         initial = '라이브 진행중이지 않음';
       } else if (resolveStatus?.status === 'error') {
         initial = '확인 실패';
-      } else if (cachedV != null && cachedV !== '') {
-        initial = formatViewers(cachedV);
+      } else if (n != null && n !== '') {
+        initial = formatViewers(n);
         has = !!initial;
       } else if (vid) {
         initial = '…';
@@ -1220,6 +1253,11 @@
         });
       }
       listItems.appendChild(li);
+
+      if (vid && n != null) {
+        nextSS[vid] = n;
+        nextSS[camKey(c)] = n;
+      }
     }
 
     if (cctvOn) {
@@ -1243,34 +1281,12 @@
       return;
     }
 
-    // 시청자 일괄
-    const batch = await fetchConcurrentViewersBatch(idsForBatch);
-    const nextSS = { ...ss };
-    const rows = [...listItems.querySelectorAll('li:not(.is-cctv)')];
-    filtered.forEach((c, i) => {
-      const el = rows[i] && rows[i].querySelector('.viewers');
-      if (!el) return;
-      const vid = getStoredVideoId(c);
-      if (!vid) {
-        el.textContent = '-';
-        el.classList.remove('has-count');
-        return;
-      }
-      const n = batch[vid];
-      const t = formatViewers(n);
-      el.textContent = t || '-';
-      el.classList.toggle('has-count', !!t);
-      if (n != null) {
-        nextSS[vid] = n;
-        nextSS[camKey(c)] = n;
-      }
-    });
     saveViewersToSS(nextSS);
     updateListMeta();
 
     // 캐시 없는 externalUrl만 자동으로 1회 확인한다.
     // 이미 offline/error 상태가 저장된 카메라는 다시 조회하지 않는다.
-    const missing = filtered.filter(c => {
+    const missing = sorted.filter(c => {
       if (!c.externalUrl || getStoredVideoId(c)) return false;
 
       const status = getResolveStatus(c);
