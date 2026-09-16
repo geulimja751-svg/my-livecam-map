@@ -1219,11 +1219,15 @@
         (c.externalUrl
           ? `<button type="button" class="btn-rid" data-refresh="1" title="live-redirect 재해석">갱신</button>`
           : '');
-      li.querySelector('.nm').addEventListener('click', () => {
-        map.flyTo([c.lat, c.lng], 15, { duration: 0.6 });
+      li.addEventListener('click', (ev) => {
+        // 갱신 버튼 클릭은 제외
+        if (ev.target.closest('.btn-rid')) return;
+        closeListHoverPreview();
+        listPanel.classList.remove('open');
+        // 짧은 이동 애니메이션 (0.6초 → 0.28초)
+        map.flyTo([c.lat, c.lng], 15, { duration: 0.28, easeLinearity: 0.25 });
         const marker = camMarkers.get(c);
         if (marker) openCam(c, marker);
-        listPanel.classList.remove('open');
       });
       bindListHoverPreview(li, c);
       const ridBtn = li.querySelector('.btn-rid');
@@ -1274,7 +1278,7 @@
         li.className = 'is-cctv';
         li.innerHTML = `<span class="tag"></span><span class="nm">${name}</span><span class="viewers">-</span>`;
         li.addEventListener('click', () => {
-          map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 15), { duration: 0.6 });
+          map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 15), { duration: 0.28, easeLinearity: 0.25 });
           marker.fire('click');
           listPanel.classList.remove('open');
         });
