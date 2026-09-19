@@ -391,11 +391,11 @@
   const YOUTUBE_API_KEY = 'AIzaSyBbGHS7EXSuj1t9V187FIr1flIfDMec3xA';
   const VIEWERS_SS_KEY = 'livecam-viewers-v1';
   const RESOLVED_KEY = 'livecam-resolved-v1';
-  const RESOLVED_TTL = 12 * 60 * 60 * 1000; // 12시간
+  const RESOLVED_TTL = 7 * 24 * 60 * 60 * 1000; // 7일
   const RESOLVE_STATUS_TTL = 12 * 60 * 60 * 1000; // 라이브 없음/확인 실패 상태 12시간
   const VIEWER_MEM_TTL = 10 * 60 * 1000; // 10분
   const RESOLVE_TIMEOUT = 25000;
-  const RESOLVE_CONCURRENCY = 2;
+  const RESOLVE_CONCURRENCY = 5;
 
   const viewerCache = new Map();
   let activeCamForPanel = null;
