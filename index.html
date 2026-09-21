@@ -689,8 +689,6 @@
     { name: "센소지 본당", lat: 35.714321, lng: 139.79668, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sensojitemple1078&keyword=Main%20Hall", desc: "본당측의 경내의 모습입니다. 카미나리몬 측의 경내의 모습" },
     { name: "센소지 가미나리몬 방면", lat: 35.713626, lng: 139.79661, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sensojitemple1078&keyword=Kaminarimon", desc: "카미나리몬 측의 경내의 모습" },
     { name: "센소지 호조몬", lat: 35.713913, lng: 139.796605, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@asakusanakaya&keyword=ASAKUSA", desc: "센소지 호조몬" },
-    { name: "도쿄역", lat: 35.681556, lng: 139.765172, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%E5%A4%A7%E4%B8%B8%E6%9C%89%E3%81%BE%E3%81%A1%E3%81%A5%E3%81%8F%E3%82%8A%E5%8D%94%E8%AD%B0%E4%BC%9A-b5v&keyword=%E3%83%A9%E3%82%A4%E3%83%96%E3%82%AB%E3%83%A1%E3%83%A9", desc: "도쿄역 마루노우치 역전 광장 주변" },
-    
   ];
 
   const map = L.map('map', { zoomControl: true, attributionControl: true, minZoom: 3, maxZoom: 18 });
@@ -951,7 +949,7 @@
     map.fitBounds(L.latLngBounds(cams.map(c => [c.lat, c.lng])).pad(0.2), { maxZoom: 7, animate: false });
   })();
 
-  // ===== 장소/좌표 검색 (MapTiler 자동완성) =====
+  // ===== 장소/좌표 검색 (Nominatim — 한/일 지명 품질 좋음) =====
   const searchInput = document.getElementById('searchInput');
   const searchSuggest = document.getElementById('searchSuggest');
   let searchTimer = null;
@@ -976,7 +974,6 @@
     if (m) {
       const a = parseFloat(m[1]);
       const b = parseFloat(m[2]);
-      // 위도가 범위 안이면 lat,lng / 아니면 반대로 시도하지 않음 (한국/일본은 lat이 앞)
       if (a >= -90 && a <= 90 && b >= -180 && b <= 180) return { lat: a, lng: b };
     }
     return null;
@@ -1003,7 +1000,7 @@
       return;
     }
     searchSuggest.innerHTML = suggestItems.map((f, i) => {
-      const name = f.place_name || f.text || f.properties?.name || '이름 없음';
+      const name = f.place_name || f.display_name || '이름 없음';
       const parts = name.split(',');
       const main = parts[0].trim();
       const sub = parts.slice(1).join(',').trim();
@@ -1020,7 +1017,6 @@
       icon: L.divIcon({ className: 'temp-marker', iconSize: [22, 22] })
     }).addTo(map);
     if (label) searchMarker.bindTooltip(label, { permanent: false, direction: 'top', offset: [0, -12], className: 'cam-tip' });
-    // 잠시 후 마커 제거 (선택사항)
     setTimeout(() => {
       if (searchMarker) {
         try { map.removeLayer(searchMarker); } catch (_) {}
@@ -1029,25 +1025,38 @@
     }, 8000);
   }
 
+  // Nominatim (OpenStreetMap) — 한글/일본어 지명 품질이 좋음, 키 불필요
+  // 정책: User-Agent 필수, 초당 1회 정도 제한 → 디바운스로 대응
   async function runGeocode(query) {
     if (searchAbort) {
       try { searchAbort.abort(); } catch (_) {}
     }
     searchAbort = new AbortController();
-    const center = map.getCenter();
     const url =
-      `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json` +
-      `?key=${encodeURIComponent(MAPTILER_KEY)}` +
-      `&language=ko` +
-      `&autocomplete=true` +
-      `&limit=7` +
-      `&proximity=${center.lng},${center.lat}`;
+      'https://nominatim.openstreetmap.org/search?' +
+      new URLSearchParams({
+        q: query,
+        format: 'json',
+        limit: '7',
+        'accept-language': 'ko',
+        addressdetails: '0',
+      }).toString();
 
     try {
-      const res = await fetch(url, { signal: searchAbort.signal });
+      const res = await fetch(url, {
+        signal: searchAbort.signal,
+        headers: { 'Accept': 'application/json' },
+      });
       if (!res.ok) throw new Error('geocode ' + res.status);
       const data = await res.json();
-      return data.features || [];
+      // Nominatim → 내부 공통 형식으로 정규화
+      return (data || []).map(item => ({
+        place_name: item.display_name,
+        display_name: item.display_name,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+        _isNominatim: true,
+      }));
     } catch (e) {
       if (e.name === 'AbortError') return null;
       console.warn('geocode', e.message);
@@ -1068,7 +1077,8 @@
     if (coords) {
       suggestItems = [{
         place_name: `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
-        center: [coords.lng, coords.lat],
+        lat: coords.lat,
+        lng: coords.lng,
         _isCoord: true
       }];
       renderSuggest(suggestItems);
@@ -1081,13 +1091,13 @@
     }
 
     showSuggestLoading();
+    // Nominatim 초당 1회 정책 고려해 약간 더 길게
     searchTimer = setTimeout(async () => {
       const features = await runGeocode(q);
       if (features === null) return; // aborted
-      // 현재 입력과 여전히 같아야 함
       if (searchInput.value.trim() !== q) return;
       renderSuggest(features);
-    }, 320);
+    }, 400);
   }
 
   function selectSuggest(idx) {
@@ -1095,11 +1105,15 @@
     if (!f) return;
     let lat, lng, label;
     if (f._isCoord) {
-      lat = f.center[1];
-      lng = f.center[0];
+      lat = f.lat;
+      lng = f.lng;
       label = f.place_name;
+    } else if (f._isNominatim) {
+      lat = f.lat;
+      lng = f.lng;
+      label = (f.place_name || '').split(',')[0].trim();
     } else {
-      // MapTiler: center = [lng, lat] or geometry.coordinates
+      // 혹시 다른 형식
       const c = f.center || f.geometry?.coordinates;
       if (!c || c.length < 2) return;
       lng = c[0];
