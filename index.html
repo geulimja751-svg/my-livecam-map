@@ -1483,11 +1483,11 @@
     li.addEventListener('mouseleave', closeListHoverPreview);
   }
 
-  let activeListFilter = 'all';
+  // 다중 선택 필터 (OR). 비어 있으면 = 전체
+  let activeListFilters = new Set();
 
   // 칩 필터: 나라(region) 또는 이름 키워드
   const LIST_FILTERS = {
-    all: () => true,
     '한국': (c) => c.region === '한국',
     '일본': (c) => c.region === '일본',
     '서울': (c) => c.region === '한국' && /서울|한강|잠실|반포|홍대|남산|노들|동대문|DDP|월드컵|가양|동호|석촌|롯데/.test(c.name),
@@ -1499,8 +1499,21 @@
   };
 
   function matchListFilter(c) {
-    const fn = LIST_FILTERS[activeListFilter] || LIST_FILTERS.all;
-    return fn(c);
+    if (activeListFilters.size === 0) return true; // 전체
+    for (const key of activeListFilters) {
+      const fn = LIST_FILTERS[key];
+      if (fn && fn(c)) return true; // OR
+    }
+    return false;
+  }
+
+  function syncFilterChips() {
+    const isAll = activeListFilters.size === 0;
+    document.querySelectorAll('#listFilters button').forEach(b => {
+      const key = b.dataset.filter;
+      if (key === 'all') b.classList.toggle('active', isAll);
+      else b.classList.toggle('active', activeListFilters.has(key));
+    });
   }
 
   async function renderList(filterText) {
@@ -1622,7 +1635,7 @@
       }
     }
 
-    if (cctvOn && activeListFilter === 'all') {
+    if (cctvOn && activeListFilters.size === 0) {
       cctvLayer.eachLayer(marker => {
         const name = 'CCTV';
         if (q && !name.toLowerCase().includes(q)) return;
@@ -1661,10 +1674,18 @@
   document.getElementById('listFilters').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-filter]');
     if (!btn) return;
-    activeListFilter = btn.dataset.filter || 'all';
-    document.querySelectorAll('#listFilters button').forEach(b => {
-      b.classList.toggle('active', b.dataset.filter === activeListFilter);
-    });
+    const key = btn.dataset.filter || 'all';
+
+    if (key === 'all') {
+      // 전체 → 다른 선택 전부 해제
+      activeListFilters.clear();
+    } else {
+      // 토글 (다중 선택 OR)
+      if (activeListFilters.has(key)) activeListFilters.delete(key);
+      else activeListFilters.add(key);
+    }
+
+    syncFilterChips();
     renderList(listSearch.value);
   });
 
