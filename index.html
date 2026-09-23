@@ -19,7 +19,9 @@
   html,body{
     margin:0; padding:0; height:100%; width:100%;
     background:var(--bg); color:var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Malgun Gothic', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Malgun Gothic',
+      'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji',
+      'Twemoji Mozilla', sans-serif;
     overflow:hidden;
   }
   body, #map, .topbar, .style-switch, .add-btn, .count-pill,
@@ -293,7 +295,11 @@
   .list-items li:hover{ background:var(--line); }
   .list-items li .tag{ width:7px; height:7px; border-radius:50%; flex-shrink:0; background:var(--accent); }
   .list-items li.is-cctv .tag{ background:var(--cctv-color); }
-  .list-items li .nm{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .list-items li .nm{
+    flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;
+    font-family: inherit, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji',
+      'Twemoji Mozilla', sans-serif;
+  }
   .list-items li .viewers{
     flex-shrink:0; font-family:var(--mono); font-size:11px; color:var(--text-dim);
     min-width:2.8em; text-align:right;
@@ -342,13 +348,28 @@
     display:flex; align-items:center; justify-content:space-between; gap:8px;
     padding:8px 10px 6px; margin:4px 0 2px;
     background:linear-gradient(180deg, var(--panel) 70%, transparent);
-    font-family:var(--mono); font-size:11px; font-weight:700;
-    color:var(--accent); letter-spacing:0.04em; text-transform:uppercase;
+    font-size:12px; font-weight:700;
+    color:var(--accent); letter-spacing:0.02em;
     pointer-events:none; user-select:none;
   }
+  .list-region-header .region-flag{
+    display:inline-flex; align-items:center; margin-right:6px;
+    vertical-align:-2px; line-height:0;
+  }
+  .list-region-header .region-flag svg{
+    width:16px; height:12px; border-radius:2px;
+    box-shadow:0 0 0 1px rgba(255,255,255,0.12);
+  }
+  .list-items li .nm .flag-svg{
+    display:inline-flex; vertical-align:-1px; margin-right:4px; line-height:0;
+  }
+  .list-items li .nm .flag-svg svg{
+    width:14px; height:10px; border-radius:1.5px;
+    box-shadow:0 0 0 1px rgba(255,255,255,0.1);
+  }
   .list-region-header .region-count{
-    font-weight:500; color:var(--text-dim); font-size:10px; letter-spacing:0;
-    text-transform:none;
+    font-family:var(--mono); font-weight:500; color:var(--text-dim);
+    font-size:10px; letter-spacing:0;
   }
   .list-region-header .region-max{
     font-weight:600; color:var(--accent); font-size:10px;
@@ -466,6 +487,22 @@
     const num = Number(n);
     if (!Number.isFinite(num)) return null;
     return num.toLocaleString('ko-KR') + '명';
+  }
+
+  // 국기 이모지 대신 SVG (Windows 등에서 KR/JP 글자로 깨지는 문제 방지)
+  const FLAG_SVG = {
+    '한국': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 48"><rect width="72" height="48" fill="#fff"/><circle cx="36" cy="24" r="12" fill="#cd2e3a"/><path d="M36 12a12 12 0 0 1 0 24 6 6 0 0 0 0-12 6 6 0 0 1 0-12z" fill="#0047a0"/></svg>',
+    '일본': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 48"><rect width="72" height="48" fill="#fff"/><circle cx="36" cy="24" r="11" fill="#bc002d"/></svg>',
+  };
+  function flagHtml(region) {
+    const svg = FLAG_SVG[region];
+    return svg ? `<span class="region-flag" aria-hidden="true">${svg}</span>` : '';
+  }
+  // 이름 앞 국기 이모지(🇯🇵 🇰🇷 등 regional indicator) 제거
+  function displayCamName(name) {
+    return String(name || '')
+      .replace(/[\u{1F1E6}-\u{1F1FF}]{2}\s*/gu, '')
+      .trim();
   }
 
   function camKey(cam) {
@@ -817,8 +854,8 @@
     stopVideo();
     activeCamForPanel = cam;
 
-    document.getElementById('panelTitle').textContent = cam.name;
-    document.getElementById('panelLoc').textContent = cam.name;
+    document.getElementById('panelTitle').textContent = displayCamName(cam.name);
+    document.getElementById('panelLoc').textContent = displayCamName(cam.name);
     document.getElementById('panelDesc').textContent = cam.desc || '';
     setPanelViewers(null);
 
@@ -969,7 +1006,7 @@
   function addCamMarker(cam) {
     const icon = L.divIcon({ className: 'cam-marker', iconSize: [20, 20] });
     const marker = L.marker([cam.lat, cam.lng], { icon }).addTo(map);
-    marker.bindTooltip(cam.name, { direction: 'top', offset: [0, -12], className: 'cam-tip', opacity: 1 });
+    marker.bindTooltip(displayCamName(cam.name), { direction: 'top', offset: [0, -12], className: 'cam-tip', opacity: 1 });
     marker.on('click', () => openCam(cam, marker));
     camMarkers.set(cam, marker);
     return marker;
@@ -1529,7 +1566,7 @@
       }
       const statusClass = resolveStatus ? ' status-text' : '';
       li.innerHTML =
-        `<span class="tag"></span><span class="nm">${c.name}</span>` +
+        `<span class="tag"></span><span class="nm">${displayCamName(c.name)}</span>` +
         `<span class="viewers${has ? ' has-count' : ''}${statusClass}">${initial}</span>` +
         (c.externalUrl
           ? `<button type="button" class="btn-rid" data-refresh="1" title="live-redirect 재해석">갱신</button>`
@@ -1590,7 +1627,7 @@
       const maxScore = Math.max(...list.map(viewerScore), -2);
       const maxLabel = maxScore >= 0 ? formatViewers(maxScore) : '';
       header.innerHTML =
-        `<span>${region}</span>` +
+        `<span>${flagHtml(region)}${region}</span>` +
         `<span class="region-count">${list.length}개` +
         (maxLabel ? ` · 최고 <span class="region-max">${maxLabel}</span>` : '') +
         `</span>`;
