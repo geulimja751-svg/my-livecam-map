@@ -337,6 +337,22 @@
   .list-items li .btn-rid:hover{ border-color:var(--accent); color:var(--accent); }
   .list-items li .btn-rid:disabled{ opacity:0.5; cursor:wait; }
   .list-empty{ padding:16px 12px; color:var(--text-dim); font-size:12px; text-align:center; }
+  .list-region-header{
+    position:sticky; top:0; z-index:2;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 10px 6px; margin:4px 0 2px;
+    background:linear-gradient(180deg, var(--panel) 70%, transparent);
+    font-family:var(--mono); font-size:11px; font-weight:700;
+    color:var(--accent); letter-spacing:0.04em; text-transform:uppercase;
+    pointer-events:none; user-select:none;
+  }
+  .list-region-header .region-count{
+    font-weight:500; color:var(--text-dim); font-size:10px; letter-spacing:0;
+    text-transform:none;
+  }
+  .list-region-header .region-max{
+    font-weight:600; color:var(--accent); font-size:10px;
+  }
 </style>
 </head>
 <body>
@@ -637,75 +653,75 @@
 
   const cams = [
     // ===== 부산 =====
-    { name: "해운대 해수욕장", lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", desc: "해운대 해변가 실시간 화면 예시" },
-    { name: "송정 해수욕장", lat: 35.177636, lng: 129.196488, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ollahotel1585&keyword=%EC%86%A1%EC%A0%95", desc: "올라호텔에서 송정 해수욕장 바라보는 뷰" },
-    { name: "송정 해수욕장 파라노마", lat: 35.17574, lng: 129.1964, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KoreaWalkingToursTV_KWTT&keyword=%EC%86%A1%EC%A0%95%ED%95%B4%EC%88%98%EC%9A%95%EC%9E%A5", desc: "송정 해수욕장 파라노마" },
-    { name: "광안리 해수욕장", lat: 35.155477, lng: 129.121923, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=광안", desc: "광안리 해수욕장 파라노마" },
-    { name: "광안리 해변", lat: 35.152425, lng: 129.117296, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=4k", desc: "광안리 해변" },
-    { name: "광안대교 라이브캠", lat: 35.142713, lng: 129.117057, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@BusanLive&keyword=광안대교", desc: "설명 없음" },
-    { name: "광안대교 중앙", lat: 35.147592, lng: 129.1302, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=상부", desc: "광안대교 상부 현수교 중앙" },
-    { name: "부경대학교", lat: 35.13458, lng: 129.104934, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@PuKyongNationalUniversity&keyword=%EB%B6%80%EA%B2%BD%EB%8C%80%ED%95%99%EA%B5%90", desc: "부경대학교 실시간" },
+    { name: "해운대 해수욕장", lat: 35.1587, lng: 129.1604, videoId: "LGuktGeHQxI", region: "한국", desc: "해운대 해변가 실시간 화면 예시" },
+    { name: "송정 해수욕장", lat: 35.177636, lng: 129.196488, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ollahotel1585&keyword=%EC%86%A1%EC%A0%95", region: "한국", desc: "올라호텔에서 송정 해수욕장 바라보는 뷰" },
+    { name: "송정 해수욕장 파라노마", lat: 35.17574, lng: 129.1964, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KoreaWalkingToursTV_KWTT&keyword=%EC%86%A1%EC%A0%95%ED%95%B4%EC%88%98%EC%9A%95%EC%9E%A5", region: "한국", desc: "송정 해수욕장 파라노마" },
+    { name: "광안리 해수욕장", lat: 35.155477, lng: 129.121923, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=광안", region: "한국", desc: "광안리 해수욕장 파라노마" },
+    { name: "광안리 해변", lat: 35.152425, lng: 129.117296, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=4k", region: "한국", desc: "광안리 해변" },
+    { name: "광안대교 라이브캠", lat: 35.142713, lng: 129.117057, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@BusanLive&keyword=광안대교", region: "한국", desc: "설명 없음" },
+    { name: "광안대교 중앙", lat: 35.147592, lng: 129.1302, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@gwangan_bridge&keyword=상부", region: "한국", desc: "광안대교 상부 현수교 중앙" },
+    { name: "부경대학교", lat: 35.13458, lng: 129.104934, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@PuKyongNationalUniversity&keyword=%EB%B6%80%EA%B2%BD%EB%8C%80%ED%95%99%EA%B5%90", region: "한국", desc: "부경대학교 실시간" },
     // ===== 대전 =====
-    { name: "대전엑스포과학공원 한빛광장", lat: 36.375896, lng: 127.388113, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=대전", desc: "대전엑스포과학공원 한빛광장" },
+    { name: "대전엑스포과학공원 한빛광장", lat: 36.375896, lng: 127.388113, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=대전", region: "한국", desc: "대전엑스포과학공원 한빛광장" },
     // ===== 서울 =====
-    { name: "서울 동대문 DDP", lat: 37.566198, lng: 127.008337, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DDPLiveSeoul&keyword=LOFI", desc: "서울 동대문 디자인 플라자" },
-    { name: "한강 잠실대교", lat: 37.5237, lng: 127.092043, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=잠실대교", desc: "한강 잠실대교" },
-    { name: "잠실 롯데월드", lat: 37.508868, lng: 127.100004, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=롯데월드", desc: "잠실 롯데월드" },
-    { name: "잠실 석촌호수", lat: 37.512603, lng: 127.106634, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=석촌호수", desc: "잠실 석촌호수" },
-    { name: "반포대교 가까이", lat: 37.51514, lng: 126.99616, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DailySeoul&keyword=반포대교", desc: "반포대교 가까이 4k" },
-    { name: "반포대교", lat: 37.513487, lng: 126.996953, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=%EC%98%AC%EB%A6%BC%ED%94%BD%EB%8C%80%EB%A1%9C", desc: "반포대교 4k" },
-    { name: "반포대교 한강공원", lat: 37.512483, lng: 127.000355, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=잠수교", desc: "반포대교와 반포 한강공원" },
-    { name: "반포대교 파노라마", lat: 37.511824, lng: 127.001685, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Live_HanGang&keyword=한강", desc: "서울 반포 한강공원에서 촬영한 4K 파노라마 뷰 (반포 한강공원 / 반포대교 / 세빛섬 / 올림픽대로 / 강변북로 / 여의도 스카이라인 / 63빌딩)" },
-    { name: "반포 그라스 정원", lat: 37.517096, lng: 127.00662, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=%ED%95%9C%EB%82%A8%EB%8C%80%EA%B5%90", desc: "한남대교 일대" },
-    { name: "남산서울타워", lat: 37.551727, lng: 126.988105, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@YTNSeoulTower&keyword=타워", desc: "남산서울타워" },
-    { name: "서울역광장", lat: 37.555293, lng: 126.971923, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=%EC%84%9C%EC%9A%B8%EC%97%AD", desc: "서울역광장" },
-    { name: "월드컵대교", lat: 37.555703, lng: 126.885223, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@riverworker&keyword=난지캠핑", desc: "월드컵대교" },
-    { name: "월드컵대교 가까이", lat: 37.557779, lng: 126.88621, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@riverworker&keyword=가까이", desc: "월드컵대교 가까이" },
-    { name: "홍대입구역 4번 출구", lat: 37.558336, lng: 126.925808, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@hongdaelive&keyword=Hongdae", desc: "홍대입구역 4번 출구" },
-    { name: "가양대교", lat: 37.573443, lng: 126.864109, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%EC%84%9C%EC%9A%B8%ED%95%9C%EA%B0%95%EB%9D%BC%EC%9D%B4%EB%B8%8C&keyword=432", desc: "가양대교" },
-    { name: "동호대교", lat: 37.536861, lng: 127.020525, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@seoulvibes_live&keyword=로파이", desc: "동호대교" },
-    { name: "노들섬", lat: 37.517666, lng: 126.958394, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@서울한강뷰&keyword=노들섬", desc: "방송시간 오전(00:00~11:55) 오후(12:00~23:55) '서울한강뷰'는 서울의 대표적인 명소들을 24시간 실시간으로 보여주는 라이브 스트리밍 채널입니다.  서울한강을 중심으로 노들섬,한강대교, 용산 일대, 남산타워, 롯데월드타워, 올림픽대로까지 — 서울의 아름다운 풍경과 변화하는 하늘, 반짝이는 야경, 계절의 흐름을 담고 있습니다." },
-    { name: "서울 남산타워 (강변북로)", lat: 37.51861, lng: 126.992469, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Live_HanGang&keyword=Namsan Tower", desc: "서울 남산타워를 중심 (남산서울타워 / 한강 / 이태원 / 그랜드하얏트서울 / 강변북로 / 서울 스카이라인)" },
+    { name: "서울 동대문 DDP", lat: 37.566198, lng: 127.008337, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DDPLiveSeoul&keyword=LOFI", region: "한국", desc: "서울 동대문 디자인 플라자" },
+    { name: "한강 잠실대교", lat: 37.5237, lng: 127.092043, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=잠실대교", region: "한국", desc: "한강 잠실대교" },
+    { name: "잠실 롯데월드", lat: 37.508868, lng: 127.100004, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=롯데월드", region: "한국", desc: "잠실 롯데월드" },
+    { name: "잠실 석촌호수", lat: 37.512603, lng: 127.106634, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=석촌호수", region: "한국", desc: "잠실 석촌호수" },
+    { name: "반포대교 가까이", lat: 37.51514, lng: 126.99616, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@DailySeoul&keyword=반포대교", region: "한국", desc: "반포대교 가까이 4k" },
+    { name: "반포대교", lat: 37.513487, lng: 126.996953, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=%EC%98%AC%EB%A6%BC%ED%94%BD%EB%8C%80%EB%A1%9C", region: "한국", desc: "반포대교 4k" },
+    { name: "반포대교 한강공원", lat: 37.512483, lng: 127.000355, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=잠수교", region: "한국", desc: "반포대교와 반포 한강공원" },
+    { name: "반포대교 파노라마", lat: 37.511824, lng: 127.001685, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Live_HanGang&keyword=한강", region: "한국", desc: "서울 반포 한강공원에서 촬영한 4K 파노라마 뷰 (반포 한강공원 / 반포대교 / 세빛섬 / 올림픽대로 / 강변북로 / 여의도 스카이라인 / 63빌딩)" },
+    { name: "반포 그라스 정원", lat: 37.517096, lng: 127.00662, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@247SeoulLiveCam&keyword=%ED%95%9C%EB%82%A8%EB%8C%80%EA%B5%90", region: "한국", desc: "한남대교 일대" },
+    { name: "남산서울타워", lat: 37.551727, lng: 126.988105, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@YTNSeoulTower&keyword=타워", region: "한국", desc: "남산서울타워" },
+    { name: "서울역광장", lat: 37.555293, lng: 126.971923, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@GiGAeyesLiveTV&keyword=%EC%84%9C%EC%9A%B8%EC%97%AD", region: "한국", desc: "서울역광장" },
+    { name: "월드컵대교", lat: 37.555703, lng: 126.885223, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@riverworker&keyword=난지캠핑", region: "한국", desc: "월드컵대교" },
+    { name: "월드컵대교 가까이", lat: 37.557779, lng: 126.88621, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@riverworker&keyword=가까이", desc: "월드컵대교 가까이", region: "한국" },
+    { name: "홍대입구역 4번 출구", lat: 37.558336, lng: 126.925808, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@hongdaelive&keyword=Hongdae", region: "한국", desc: "홍대입구역 4번 출구" },
+    { name: "가양대교", lat: 37.573443, lng: 126.864109, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%EC%84%9C%EC%9A%B8%ED%95%9C%EA%B0%95%EB%9D%BC%EC%9D%B4%EB%B8%8C&keyword=432", region: "한국", desc: "가양대교" },
+    { name: "동호대교", lat: 37.536861, lng: 127.020525, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@seoulvibes_live&keyword=로파이", region: "한국", desc: "동호대교" },
+    { name: "노들섬", lat: 37.517666, lng: 126.958394, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@서울한강뷰&keyword=노들섬", region: "한국", desc: "방송시간 오전(00:00~11:55) 오후(12:00~23:55) '서울한강뷰'는 서울의 대표적인 명소들을 24시간 실시간으로 보여주는 라이브 스트리밍 채널입니다.  서울한강을 중심으로 노들섬,한강대교, 용산 일대, 남산타워, 롯데월드타워, 올림픽대로까지 — 서울의 아름다운 풍경과 변화하는 하늘, 반짝이는 야경, 계절의 흐름을 담고 있습니다." },
+    { name: "서울 남산타워 (강변북로)", lat: 37.51861, lng: 126.992469, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Live_HanGang&keyword=Namsan Tower", region: "한국", desc: "서울 남산타워를 중심 (남산서울타워 / 한강 / 이태원 / 그랜드하얏트서울 / 강변북로 / 서울 스카이라인)" },
     
     // ===== 오사카 =====
-    { name: "🇯🇵 오사카성", lat: 34.687413, lng: 135.525804, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tvosakanews&keyword=Castle", desc: "오사카성" },
-    { name: "🇯🇵 오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", desc: "에비스바시 다리" },
-    { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", desc: "에비스바시 상점가" },
-    { name: "글리코상", lat: 34.669072, lng: 135.501305, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@mbsnews&keyword=Dotonbori", desc: "글리코상" },
-    { name: "츠텐카쿠", lat: 34.652631, lng: 135.506382, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ebisuhotel&keyword=osaka", desc: "츠텐카쿠" },
-    { name: "우메다 스카이 빌딩 공중정원", lat: 34.698565, lng: 135.490383, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sports_mainichi&keyword=Umeda", desc: "우메다" },
-    { name: "요도바시 (오사카 시청)", lat: 34.693016, lng: 135.500994, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@LIVE-hr9eo&keyword=中之島", desc: "오사카 신문사에서 바라보는 토사보리강(土佐堀川)에 놓인 요도야바시(淀屋橋) 주변의 모습" },
-    { name: "오사카 신사이바시 유니클로 앞", lat: 34.674723, lng: 135.501359, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@FSTNET-ro9cc&keyword=ユニクロ", desc: "오사카 신사이바시 유니클로 앞" },
-    { name: "오사카 신사이바시 (나가호리도리 교차로)", lat: 34.674955, lng: 135.501401, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@FSTNET-ro9cc&keyword=長堀通り交差", desc: "오사카 신사이바시 (나가호리도리 교차로)" },
-    { name: "오사카 니혼바시", lat: 34.660413, lng: 135.505859, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@LIVE-jj8cr&keyword=Nipponbashi", desc: "오사카부 오사카시 나니와구 니혼바시 4-10-10" },
+    { name: "🇯🇵 오사카성", lat: 34.687413, lng: 135.525804, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tvosakanews&keyword=Castle", region: "일본", desc: "오사카성" },
+    { name: "🇯🇵 오사카 에비스바시 다리", lat: 34.668803, lng: 135.501297, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=Dotonbori", region: "일본", desc: "에비스바시 다리" },
+    { name: "에비스비 상점가", lat: 34.668664, lng: 135.501275, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@RVJplanet&keyword=%E3%83%86%E3%82%B9%E3%83%88%E9%85%8D%E4%BF%A1", region: "일본", desc: "에비스바시 상점가" },
+    { name: "글리코상", lat: 34.669072, lng: 135.501305, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@mbsnews&keyword=Dotonbori", region: "일본", desc: "글리코상" },
+    { name: "츠텐카쿠", lat: 34.652631, lng: 135.506382, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ebisuhotel&keyword=osaka", region: "일본", desc: "츠텐카쿠" },
+    { name: "우메다 스카이 빌딩 공중정원", lat: 34.698565, lng: 135.490383, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sports_mainichi&keyword=Umeda", region: "일본", desc: "우메다" },
+    { name: "요도바시 (오사카 시청)", lat: 34.693016, lng: 135.500994, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@LIVE-hr9eo&keyword=中之島", region: "일본", desc: "오사카 신문사에서 바라보는 토사보리강(土佐堀川)에 놓인 요도야바시(淀屋橋) 주변의 모습" },
+    { name: "오사카 신사이바시 유니클로 앞", lat: 34.674723, lng: 135.501359, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@FSTNET-ro9cc&keyword=ユニクロ", region: "일본", desc: "오사카 신사이바시 유니클로 앞" },
+    { name: "오사카 신사이바시 (나가호리도리 교차로)", lat: 34.674955, lng: 135.501401, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@FSTNET-ro9cc&keyword=長堀通り交差", region: "일본", desc: "오사카 신사이바시 (나가호리도리 교차로)" },
+    { name: "오사카 니혼바시", lat: 34.660413, lng: 135.505859, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@LIVE-jj8cr&keyword=Nipponbashi", region: "일본", desc: "오사카부 오사카시 나니와구 니혼바시 4-10-10" },
     // ===== 도쿄 =====
-    { name: "가부키초 이치반가이", lat: 35.693869, lng: 139.701031, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-1&keyword=24", desc: "가부키초 이치반가이" },
-    { name: "가부키초 1번가", lat: 35.6940837, lng: 139.7011244, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-2&keyword=Channel", desc: "가부키초 1번가" },
-    { name: "가부키초 1번가 2", lat: 35.694278, lng: 139.701159, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E4%B8%80%E7%95%AA%E8%A1%97", desc: "가부키초 이치반가이 라이브" },
-    { name: "고질라 스퀘어", lat: 35.694804, lng: 139.701945, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E3%83%A9%E3%82%A4%E3%83%96", desc: "고질라 스퀘어" },
-    { name: "시네시티 광장(토요코)", lat: 35.695513, lng: 139.701671, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KabukichoLiveCamera&keyword=歌舞伎町", desc: "시네시티 광장" },
-    { name: "시네시티 광장 GiGO 앞", lat: 35.695158, lng: 139.701495, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KabukichoLiveCamera&keyword=stream", desc: "시네시티 광장 GiGO 앞 -> 가부키초 이치반가이 / 고질라 스퀘어" },
-    { name: "신주쿠 JR", lat: 35.693666, lng: 139.699783, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@livetokyoshinjukulivech8492&keyword=OmoideYokocho", desc: "신주쿠 JR, 신주쿠 돈키호테, 오모이데요코초" },
-    { name: "신주쿠역 pepe 앞 광장 교차로", lat: 35.693572, lng: 139.700384, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@info-shinjuku&keyword=Shinjuku", desc: "도쿄도 신주쿠구 세이부신주쿠역의 pepe 앞 광장 교차로 (YUNIKA VISON 앞)" },
-    { name: "신주쿠 카레이도 앞 교차로", lat: 35.693616, lng: 139.699166, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@livetokyoshinjukulivech5482&keyword=Shinjuku", desc: "신주쿠 카레이도(Kaleido) 앞 교차로" },
-    { name: "신주쿠 가부키초 (구청 교차로)", lat: 35.693028, lng: 139.703514, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Teikei_Official&keyword=%E5%8C%BA%E5%BD%B9%E6%89%80", desc: "테이케이 본사 빌딩 옥상에서 신주쿠구 가부키초(구청 앞 교차로)" },
-    { name: "신주쿠 고쵸메 교차점", lat: 35.692409, lng: 139.705718, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Teikei_Official&keyword=配信", desc: "테이케이 본사 빌딩 옥상에서 신주쿠구 가부키초 교차로" },
-    { name: "신주쿠 가부키쵸 교차점", lat: 35.693372, lng: 139.702028, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=%40Teikei_Official&keyword=%E6%9D%B1%E4%BA%AC%20%E6%96%B0%E5%AE%BF%20%E6%AD%8C%E8%88%9E%E4%BC%8E%E7%94%BA%20%E4%BA%A4%E5%B7%AE%E7%82%B9%20%E3%83%A9%E3%82%A4%E3%83%96%E3%82%AB%E3%83%A1%E3%83%A9", desc: "테이케이 본사 빌딩 옥상에서 신주쿠구 가부키초 교차로 방면" },
-    { name: "아사쿠사 아사히 스카이룸", lat: 35.710055, lng: 139.798016, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%E8%88%B9%E5%AE%BF%E3%81%82%E3%81%BF%E6%B8%85&keyword=%E3%80%904K%E3%80%91%E3%83%A9%E3%82%A4%E3%83%96%E3%82%AB%E3%83%A1%E3%83%A9-%E6%97%A5%E6%9C%AC-%E6%B5%85%E8%8D%89-%E9%9A%85%E7%94%B0%E5%B7%9D-%E3%82%B9%E3%82%AB%E3%82%A4%E3%83%84%E3%83%AA%E3%83%BC-%E5%B1%8B%E5%BD%A2%E8%88%B9&exclude=2026", desc: "아사쿠사 아사히 스카이룸" },
-    { name: "아사쿠사 스미다강", lat: 35.70918, lng: 139.797152, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@asakusalivecam&keyword=24/7", desc: "아사쿠사 스미다강" },
-    { name: "센소지 본당", lat: 35.714321, lng: 139.79668, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sensojitemple1078&keyword=Main%20Hall", desc: "본당측의 경내의 모습입니다. 카미나리몬 측의 경내의 모습" },
-    { name: "센소지 가미나리몬 방면", lat: 35.713626, lng: 139.79661, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sensojitemple1078&keyword=Kaminarimon", desc: "카미나리몬 측의 경내의 모습" },
-    { name: "센소지 호조몬", lat: 35.713913, lng: 139.796605, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@asakusanakaya&keyword=ASAKUSA", desc: "센소지 호조몬" },
-    { name: "도쿄역", lat: 35.681556, lng: 139.765172, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%E5%A4%A7%E4%B8%B8%E6%9C%89%E3%81%BE%E3%81%A1%E3%81%A5%E3%81%8F%E3%82%8A%E5%8D%94%E8%AD%B0%E4%BC%9A-b5v&keyword=%E3%83%A9%E3%82%A4%E3%83%96%E3%82%AB%E3%83%A1%E3%83%A9", desc: "도쿄역 마루노우치 역전 광장 주변" },
-    { name: "도쿄 타워", lat: 35.658595, lng: 139.745434, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@TOKYOTOWER333&keyword=%E3%83%A9%E3%82%A4%E3%83%96%E3%82%AB%E3%83%A1%E3%83%A9", desc: "도쿄 타워" },
-    { name: "도쿄 시오도메", lat: 35.662845, lng: 139.755669, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@fl5vf9kr5b&keyword=Shimbashi", desc: "도쿄 시오도메에서 신바시, 토라노몬, 아자부다이, 도쿄 타워 방면" },
-    { name: "신주쿠 JR역 앞", lat: 35.688992, lng: 139.700075, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tbsnewsdig&keyword=新宿駅前", desc: "신주쿠역 앞의 라이브 카메라" },
-    { name: "아키하바라 오노덴", lat: 35.698201, lng: 139.771325, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ch-rz3bx&keyword=オノデン", desc: "도쿄 아키하바라 오노덴 매장 빌딩에서 JR 아키하바라역 방향으로 4K" },
-    { name: "시부야 스크램블 교차로", lat: 35.659502, lng: 139.700512, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@FNNnewsCH&keyword=Scramble", desc: "시부야 스크램블 교차로" },
-    { name: "시부야 센터가이", lat: 35.65965, lng: 139.700327, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@渋谷センター商店街&keyword=メインアーチ前", desc: "시부야 센터가이에서 스크램블 방향" },
-    { name: "시부야 센터가이 맥도날드 앞", lat: 35.660413, lng: 139.698568, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@渋谷センター商店街&keyword=マクドナルド", desc: "시부야 센터가이 맥도날드 앞" },
-    { name: "시부야 센터가이 이노카시라 거리", lat: 35.660698, lng: 139.699179, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@渋谷センター商店街&keyword=井の頭通り", desc: "시부야 센터가이 이노카시라 거리" },
-    { name: "시부야 스크램블 스퀘어", lat: 35.658338, lng: 139.702156, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@shibuyaqws4296&keyword=SHIBUYA", desc: "시부야 스크램블 스퀘어 15층 SHIBUYA QWS(시부야 큐즈) 내  스크램블 홀에서 스크램블 교차로와 신주쿠 방면" },
+    { name: "가부키초 이치반가이", lat: 35.693869, lng: 139.701031, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-1&keyword=24", region: "일본", desc: "가부키초 이치반가이" },
+    { name: "가부키초 1번가", lat: 35.6940837, lng: 139.7011244, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho-2&keyword=Channel", region: "일본", desc: "가부키초 1번가" },
+    { name: "가부키초 1번가 2", lat: 35.694278, lng: 139.701159, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E4%B8%80%E7%95%AA%E8%A1%97", region: "일본", desc: "가부키초 이치반가이 라이브" },
+    { name: "고질라 스퀘어", lat: 35.694804, lng: 139.701945, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kabukicho526&keyword=%E3%83%A9%E3%82%A4%E3%83%96", region: "일본", desc: "고질라 스퀘어" },
+    { name: "시네시티 광장(토요코)", lat: 35.695513, lng: 139.701671, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KabukichoLiveCamera&keyword=歌舞伎町", region: "일본", desc: "시네시티 광장" },
+    { name: "시네시티 광장 GiGO 앞", lat: 35.695158, lng: 139.701495, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@KabukichoLiveCamera&keyword=stream", region: "일본", desc: "시네시티 광장 GiGO 앞 -> 가부키초 이치반가이 / 고질라 스퀘어" },
+    { name: "신주쿠 JR", lat: 35.693666, lng: 139.699783, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@livetokyoshinjukulivech8492&keyword=OmoideYokocho", region: "일본", desc: "신주쿠 JR, 신주쿠 돈키호테, 오모이데요코초" },
+    { name: "신주쿠역 pepe 앞 광장 교차로", lat: 35.693572, lng: 139.700384, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@info-shinjuku&keyword=Shinjuku", region: "일본", desc: "도쿄도 신주쿠구 세이부신주쿠역의 pepe 앞 광장 교차로 (YUNIKA VISON 앞)" },
+    { name: "신주쿠 카레이도 앞 교차로", lat: 35.693616, lng: 139.699166, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@livetokyoshinjukulivech5482&keyword=Shinjuku", region: "일본", desc: "신주쿠 카레이도(Kaleido) 앞 교차로" },
+    { name: "신주쿠 가부키초 (구청 교차로)", lat: 35.693028, lng: 139.703514, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Teikei_Official&keyword=%E5%8C%BA%E5%BD%B9%E6%89%80", region: "일본", desc: "테이케이 본사 빌딩 옥상에서 신주쿠구 가부키초(구청 앞 교차로)" },
+    { name: "신주쿠 고쵸메 교차점", lat: 35.692409, lng: 139.705718, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@Teikei_Official&keyword=配信", region: "일본", desc: "테이케이 본사 빌딩 옥상에서 신주쿠구 가부키초 교차로" },
+    { name: "신주쿠 가부키쵸 교차점", lat: 35.693372, lng: 139.702028, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=%40Teikei_Official&keyword=%E6%9D%B1%E4%BA%AC%20%E6%96%B0%E5%AE%BF%20%E6%AD%8C%E8%88%9E%E4%BC%8E%E7%94%BA%20%E4%BA%A4%E5%B7%AE%E7%82%B9%20%E3%83%A9%E3%82%A4%E3%83%96%E3%82%AB%E3%83%A1%E3%83%A9", region: "일본", desc: "테이케이 본사 빌딩 옥상에서 신주쿠구 가부키초 교차로 방면" },
+    { name: "아사쿠사 아사히 스카이룸", lat: 35.710055, lng: 139.798016, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%E8%88%B9%E5%AE%BF%E3%81%82%E3%81%BF%E6%B8%85&keyword=%E3%80%904K%E3%80%91%E3%83%A9%E3%82%A4%E3%83%96%E3%82%AB%E3%83%A1%E3%83%A9-%E6%97%A5%E6%9C%AC-%E6%B5%85%E8%8D%89-%E9%9A%85%E7%94%B0%E5%B7%9D-%E3%82%B9%E3%82%AB%E3%82%A4%E3%83%84%E3%83%AA%E3%83%BC-%E5%B1%8B%E5%BD%A2%E8%88%B9&exclude=2026", region: "일본", desc: "아사쿠사 아사히 스카이룸" },
+    { name: "아사쿠사 스미다강", lat: 35.70918, lng: 139.797152, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@asakusalivecam&keyword=24/7", region: "일본", desc: "아사쿠사 스미다강" },
+    { name: "센소지 본당", lat: 35.714321, lng: 139.79668, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sensojitemple1078&keyword=Main%20Hall", region: "일본", desc: "본당측의 경내의 모습입니다. 카미나리몬 측의 경내의 모습" },
+    { name: "센소지 가미나리몬 방면", lat: 35.713626, lng: 139.79661, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@sensojitemple1078&keyword=Kaminarimon", region: "일본", desc: "카미나리몬 측의 경내의 모습" },
+    { name: "센소지 호조몬", lat: 35.713913, lng: 139.796605, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@asakusanakaya&keyword=ASAKUSA", region: "일본", desc: "센소지 호조몬" },
+    { name: "도쿄역", lat: 35.681556, lng: 139.765172, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@%E5%A4%A7%E4%B8%B8%E6%9C%89%E3%81%BE%E3%81%A1%E3%81%A5%E3%81%8F%E3%82%8A%E5%8D%94%E8%AD%B0%E4%BC%9A-b5v&keyword=%E3%83%A9%E3%82%A4%E3%83%96%E3%82%AB%E3%83%A1%E3%83%A9", region: "일본", desc: "도쿄역 마루노우치 역전 광장 주변" },
+    { name: "도쿄 타워", lat: 35.658595, lng: 139.745434, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@TOKYOTOWER333&keyword=%E3%83%A9%E3%82%A4%E3%83%96%E3%82%AB%E3%83%A1%E3%83%A9", region: "일본", desc: "도쿄 타워" },
+    { name: "도쿄 시오도메", lat: 35.662845, lng: 139.755669, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@fl5vf9kr5b&keyword=Shimbashi", region: "일본", desc: "도쿄 시오도메에서 신바시, 토라노몬, 아자부다이, 도쿄 타워 방면" },
+    { name: "신주쿠 JR역 앞", lat: 35.688992, lng: 139.700075, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@tbsnewsdig&keyword=新宿駅前", region: "일본", desc: "신주쿠역 앞의 라이브 카메라" },
+    { name: "아키하바라 오노덴", lat: 35.698201, lng: 139.771325, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@ch-rz3bx&keyword=オノデン", region: "일본", desc: "도쿄 아키하바라 오노덴 매장 빌딩에서 JR 아키하바라역 방향으로 4K" },
+    { name: "시부야 스크램블 교차로", lat: 35.659502, lng: 139.700512, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@FNNnewsCH&keyword=Scramble", desc: "시부야 스크램블 교차로", region: "일본" },
+    { name: "시부야 센터가이", lat: 35.65965, lng: 139.700327, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@渋谷センター商店街&keyword=メインアーチ前", region: "일본", desc: "시부야 센터가이에서 스크램블 방향" },
+    { name: "시부야 센터가이 맥도날드 앞", lat: 35.660413, lng: 139.698568, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@渋谷センター商店街&keyword=マクドナルド", region: "일본", desc: "시부야 센터가이 맥도날드 앞" },
+    { name: "시부야 센터가이 이노카시라 거리", lat: 35.660698, lng: 139.699179, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@渋谷センター商店街&keyword=井の頭通り", region: "일본", desc: "시부야 센터가이 이노카시라 거리" },
+    { name: "시부야 스크램블 스퀘어", lat: 35.658338, lng: 139.702156, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@shibuyaqws4296&keyword=SHIBUYA", region: "일본", desc: "시부야 스크램블 스퀘어 15층 SHIBUYA QWS(시부야 큐즈) 내  스크램블 홀에서 스크램블 교차로와 신주쿠 방면" },
     
   ];
 
@@ -1438,7 +1454,7 @@
     const q = (filterText || '').trim().toLowerCase();
     closeListHoverPreview();
     listItems.innerHTML = '';
-    const filtered = cams.filter(c => !q || c.name.toLowerCase().includes(q));
+    const filtered = cams.filter(c => !q || c.name.toLowerCase().includes(q) || (c.region || '').toLowerCase().includes(q));
     const ss = loadViewersFromSS();
     const idsForBatch = [];
 
@@ -1460,24 +1476,39 @@
       return null;
     }
 
-    // 시청자 수 내림차순 (숫자 있는 것 우선, 없으면 맨 아래)
-    // offline/error 상태도 뒤로 보냄
-    const sorted = [...filtered].sort((a, b) => {
-      const statusA = getResolveStatus(a);
-      const statusB = getResolveStatus(b);
-      const offlineA = statusA?.status === 'offline' || statusA?.status === 'error';
-      const offlineB = statusB?.status === 'offline' || statusB?.status === 'error';
-      if (offlineA && !offlineB) return 1;
-      if (!offlineA && offlineB) return -1;
+    function viewerScore(c) {
+      const status = getResolveStatus(c);
+      if (status?.status === 'offline' || status?.status === 'error') return -2;
+      const n = getViewerCount(c);
+      if (n != null && Number.isFinite(Number(n))) return Number(n);
+      return -1;
+    }
 
-      const na = getViewerCount(a);
-      const nb = getViewerCount(b);
-      const va = na != null && Number.isFinite(Number(na)) ? Number(na) : -1;
-      const vb = nb != null && Number.isFinite(Number(nb)) ? Number(nb) : -1;
-      return vb - va;
+    // 나라별 그룹핑 (한국 / 일본)
+    const regionOrder = ['한국', '일본'];
+    const groups = new Map();
+    for (const c of filtered) {
+      const r = c.region || '기타';
+      if (!groups.has(r)) groups.set(r, []);
+      groups.get(r).push(c);
+    }
+
+    // 각 그룹 내부: 시청자 수 내림차순
+    for (const list of groups.values()) {
+      list.sort((a, b) => viewerScore(b) - viewerScore(a));
+    }
+
+    // 그룹 자체: 최고 시청자 수 기준 내림차순 (고정 지역 순서로 타이브레이킹)
+    const sortedRegions = [...groups.keys()].sort((ra, rb) => {
+      const maxA = Math.max(...groups.get(ra).map(viewerScore), -2);
+      const maxB = Math.max(...groups.get(rb).map(viewerScore), -2);
+      if (maxB !== maxA) return maxB - maxA;
+      const ia = regionOrder.indexOf(ra);
+      const ib = regionOrder.indexOf(rb);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
 
-    for (const c of sorted) {
+    function appendCamLi(c) {
       const li = document.createElement('li');
       const vid = getStoredVideoId(c);
       const resolveStatus = getResolveStatus(c);
@@ -1504,11 +1535,9 @@
           ? `<button type="button" class="btn-rid" data-refresh="1" title="live-redirect 재해석">갱신</button>`
           : '');
       li.addEventListener('click', (ev) => {
-        // 갱신 버튼 클릭은 제외
         if (ev.target.closest('.btn-rid')) return;
         closeListHoverPreview();
         listPanel.classList.remove('open');
-        // 짧은 이동 애니메이션 (0.6초 → 0.28초)
         map.flyTo([c.lat, c.lng], 15, { duration: 0.28, easeLinearity: 0.25 });
         const marker = camMarkers.get(c);
         if (marker) openCam(c, marker);
@@ -1523,7 +1552,6 @@
           clearStoredVideoId(c);
 
           try {
-            // 수동 갱신이므로 이전 offline/error 상태를 지우고 강제 확인
             const all = loadResolvedMap();
             delete all[camKey(c)];
             saveResolvedMap(all);
@@ -1554,7 +1582,28 @@
       }
     }
 
+    for (const region of sortedRegions) {
+      const list = groups.get(region);
+      const header = document.createElement('li');
+      header.className = 'list-region-header';
+      header.style.cursor = 'default';
+      const maxScore = Math.max(...list.map(viewerScore), -2);
+      const maxLabel = maxScore >= 0 ? formatViewers(maxScore) : '';
+      header.innerHTML =
+        `<span>${region}</span>` +
+        `<span class="region-count">${list.length}개` +
+        (maxLabel ? ` · 최고 <span class="region-max">${maxLabel}</span>` : '') +
+        `</span>`;
+      listItems.appendChild(header);
+      list.forEach(appendCamLi);
+    }
+
     if (cctvOn) {
+      const cctvHeader = document.createElement('li');
+      cctvHeader.className = 'list-region-header';
+      cctvHeader.style.cursor = 'default';
+      cctvHeader.innerHTML = `<span>CCTV</span><span class="region-count">ITS</span>`;
+      listItems.appendChild(cctvHeader);
       cctvLayer.eachLayer(marker => {
         const name = 'CCTV';
         if (q && !name.toLowerCase().includes(q)) return;
@@ -1580,7 +1629,8 @@
 
     // 캐시 없는 externalUrl만 자동으로 1회 확인한다.
     // 이미 offline/error 상태가 저장된 카메라는 다시 조회하지 않는다.
-    const missing = sorted.filter(c => {
+    const allSorted = sortedRegions.flatMap(r => groups.get(r));
+    const missing = allSorted.filter(c => {
       if (!c.externalUrl || getStoredVideoId(c)) return false;
 
       const status = getResolveStatus(c);
