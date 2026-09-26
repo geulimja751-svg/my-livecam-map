@@ -469,11 +469,17 @@
   const YOUTUBE_API_KEY = 'AIzaSyBbGHS7EXSuj1t9V187FIr1flIfDMec3xA';
   const VIEWERS_SS_KEY = 'livecam-viewers-v1';
   const RESOLVED_KEY = 'livecam-resolved-v1';
-  const RESOLVED_TTL = 7 * 24 * 60 * 60 * 1000; // 7일
-  const RESOLVE_STATUS_TTL = 7 * 24 * 60 * 60 * 1000; // 라이브 없음/확인 실패 상태 7일
+  const RESOLVE_BUDGET_KEY = 'livecam-resolve-budget-v1';
+  // TTL = Time To Live: 캐시(videoId)가 유효한 기간. 7일 후 자동 갱신 대상이 됨
+  const RESOLVED_TTL = 7 * 24 * 60 * 60 * 1000;
+  const RESOLVE_STATUS_TTL = 7 * 24 * 60 * 60 * 1000; // 라이브 없음 등 7일
+  const RESOLVE_QUOTA_TTL = 1 * 24 * 60 * 60 * 1000; // 할당량 초과는 1일만 막고 다음날 재시도
   const VIEWER_MEM_TTL = 10 * 60 * 1000; // 10분
   const RESOLVE_TIMEOUT = 25000;
-  const RESOLVE_CONCURRENCY = 5;
+  const RESOLVE_CONCURRENCY = 2; // 동시 해석 수
+  // 하루 자동 해석 최대 개수 (수동 갱신 버튼은 제외)
+  // 예: 캐시 0개인 첫날 → 20개, 다음날 20개, … → 7일간 유지 후 다시 차례로 갱신
+  const RESOLVE_DAILY_BUDGET = 20;
 
   const viewerCache = new Map();
   let activeCamForPanel = null;
@@ -513,12 +519,44 @@
     try { localStorage.setItem(RESOLVED_KEY, JSON.stringify(obj)); } catch (_) {}
   }
 
+  // 하루 자동 해석 예산 (수동 갱신은 카운트하지 않음)
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function loadResolveBudget() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(RESOLVE_BUDGET_KEY) || '{}');
+      if (raw.day !== todayKey()) return { day: todayKey(), used: 0 };
+      return { day: raw.day, used: Number(raw.used) || 0 };
+    } catch (_) {
+      return { day: todayKey(), used: 0 };
+    }
+  }
+  function remainingResolveBudget() {
+    return Math.max(0, RESOLVE_DAILY_BUDGET - loadResolveBudget().used);
+  }
+  function consumeResolveBudget(n) {
+    const b = loadResolveBudget();
+    b.used = (b.used || 0) + n;
+    try { localStorage.setItem(RESOLVE_BUDGET_KEY, JSON.stringify(b)); } catch (_) {}
+  }
+
+  // 재생용: 만료돼도 기존 videoId는 그대로 씀 (할당량 때문에 한꺼번에 날리지 않음)
   function getStoredVideoId(cam) {
     if (cam.videoId) return cam.videoId;
     const row = loadResolvedMap()[camKey(cam)];
     if (!row || !row.videoId) return null;
-    if (row.ts && Date.now() - row.ts > RESOLVED_TTL) return null;
     return row.videoId;
+  }
+
+  // 자동 갱신 대상: ID 없음 또는 7일(TTL) 지남
+  function isVideoIdStale(cam) {
+    if (cam.videoId) return false; // 고정 videoId는 갱신 불필요
+    const row = loadResolvedMap()[camKey(cam)];
+    if (!row || !row.videoId) return true;
+    if (!row.ts) return true;
+    return Date.now() - row.ts > RESOLVED_TTL;
   }
 
   function setStoredVideoId(cam, videoId) {
@@ -536,7 +574,8 @@
 
   // live-redirect 자동 재확인 방지용 상태 캐시
   // status: 'offline' = 현재 라이브 없음
-  //        'error'   = API/네트워크/할당량 등 확인 실패
+  //        'error'   = API/네트워크 등 확인 실패
+  //        'quota'   = YouTube 할당량 초과 (짧게만 캐시)
   function setResolveStatus(cam, status, message = '') {
     const all = loadResolvedMap();
     all[camKey(cam)] = {
@@ -547,11 +586,17 @@
     saveResolvedMap(all);
   }
 
+  function isQuotaMessage(msg) {
+    const m = String(msg || '').toLowerCase();
+    return m.includes('quota') || m.includes('할당량') || m.includes('rate limit') || m.includes('exceeded');
+  }
+
   function getResolveStatus(cam) {
     const row = loadResolvedMap()[camKey(cam)];
     if (!row || !row.status) return null;
 
-    if (row.ts && Date.now() - row.ts > RESOLVE_STATUS_TTL) {
+    const ttl = row.status === 'quota' ? RESOLVE_QUOTA_TTL : RESOLVE_STATUS_TTL;
+    if (row.ts && Date.now() - row.ts > ttl) {
       return null;
     }
 
@@ -592,8 +637,9 @@
         if (d.ok && d.videoId) {
           resolve(d.videoId);
         } else {
-          const err = new Error(d.message || d.error || '라이브 없음');
-          err.code = d.error || 'unknown';
+          const msg = d.message || d.error || '라이브 없음';
+          const err = new Error(msg);
+          err.code = isQuotaMessage(msg) ? 'quota' : (d.error || 'unknown');
           reject(err);
         }
       }
@@ -887,10 +933,12 @@
         return;
       }
 
-      if (status?.status === 'error') {
+      if (status?.status === 'error' || status?.status === 'quota') {
+        const isQ = status.status === 'quota';
         videoWrap.innerHTML =
-          '<div class="video-state"><div>라이브 확인 실패</div><small>하단의 ID 갱신 버튼으로 다시 확인할 수 있습니다.</small></div>';
-        panelSrc.textContent = 'live-redirect: 확인 실패 (캐시됨)';
+          `<div class="video-state"><div>${isQ ? 'YouTube 할당량 초과' : '라이브 확인 실패'}</div>` +
+          `<small>${isQ ? '내일 자동 재시도됩니다. 급하면 하단 ID 갱신을 눌러보세요.' : '하단의 ID 갱신 버튼으로 다시 확인할 수 있습니다.'}</small></div>`;
+        panelSrc.textContent = isQ ? 'live-redirect: 할당량 초과 (캐시됨)' : 'live-redirect: 확인 실패 (캐시됨)';
         openTabBtn.href = stripEmbed(cam.externalUrl);
         return;
       }
@@ -918,6 +966,11 @@
           videoWrap.innerHTML =
             '<div class="video-state"><div>현재 라이브 진행중이지 않음</div><small>목록의 갱신 버튼으로 다시 확인할 수 있습니다.</small></div>';
           panelSrc.textContent = 'live-redirect: 현재 라이브 없음';
+        } else if (e.code === 'quota' || isQuotaMessage(e.message)) {
+          setResolveStatus(cam, 'quota', 'YouTube 할당량 초과 · 내일 자동 재시도');
+          videoWrap.innerHTML =
+            '<div class="video-state"><div>YouTube 할당량 초과</div><small>내일 자동 재시도됩니다.</small></div>';
+          panelSrc.textContent = 'live-redirect: 할당량 초과';
         } else {
           setResolveStatus(cam, 'error', e.message || '라이브 확인 실패');
           videoWrap.innerHTML =
@@ -980,11 +1033,16 @@
     } catch (e) {
       if (e.code === 'no_live') {
         setResolveStatus(cam, 'offline', '현재 라이브 진행중이지 않음');
+      } else if (e.code === 'quota' || isQuotaMessage(e.message)) {
+        setResolveStatus(cam, 'quota', 'YouTube 할당량 초과 · 내일 자동 재시도');
       } else {
         setResolveStatus(cam, 'error', e.message || '라이브 확인 실패');
       }
 
-      alert('갱신 실패: ' + (e.message || e));
+      const msg = (e.code === 'quota' || isQuotaMessage(e.message))
+        ? 'YouTube API 일일 할당량이 소진되었습니다. 내일 다시 시도해 주세요.'
+        : ('갱신 실패: ' + (e.message || e));
+      alert(msg);
       btn.textContent = 'ID 갱신';
       btn.disabled = false;
     }
@@ -1339,28 +1397,54 @@
     const resolved = loadResolvedMap();
     let n = 0;
     cams.forEach(c => {
-      if (c.videoId || (resolved[camKey(c)] && resolved[camKey(c)].videoId)) n++;
+      if (c.videoId || (resolved[camKey(c)] && resolved[camKey(c)].videoId && getStoredVideoId(c))) n++;
     });
+    const budgetLeft = remainingResolveBudget();
     const meta = document.getElementById('listMeta');
-    meta.textContent = `videoId ${n}/${cams.length} · 목록 시 시청자 videos.list`;
-    meta.className = 'list-meta ok';
+    meta.textContent = `videoId ${n}/${cams.length} · 오늘 자동갱신 ${budgetLeft}/${RESOLVE_DAILY_BUDGET}`;
+    meta.className = budgetLeft > 0 ? 'list-meta ok' : 'list-meta warn';
   }
 
   async function runResolveQueue(missingCams) {
     if (resolveQueueRunning || !missingCams.length) return;
+
+    // 하루 예산만큼만 자동 해석 (만료가 몰려도 할당량 폭주 방지)
+    const budget = remainingResolveBudget();
+    if (budget <= 0) {
+      const meta = document.getElementById('listMeta');
+      meta.textContent = `오늘 자동갱신 한도 소진 (${RESOLVE_DAILY_BUDGET}개) · 내일 이어서`;
+      meta.className = 'list-meta warn';
+      return;
+    }
+
+    // 미해석(ID 없음) 우선 → 그다음 오래된 캐시 순, 하루 20개만
+    const sortedMissing = [...missingCams].sort((a, b) => {
+      const ra = loadResolvedMap()[camKey(a)];
+      const rb = loadResolvedMap()[camKey(b)];
+      const hasA = !!(ra && ra.videoId);
+      const hasB = !!(rb && rb.videoId);
+      if (hasA !== hasB) return hasA ? 1 : -1; // 없는 쪽 먼저
+      return (ra?.ts || 0) - (rb?.ts || 0); // 오래된 것 먼저
+    });
+    const batch = sortedMissing.slice(0, budget);
     resolveQueueRunning = true;
     const meta = document.getElementById('listMeta');
     let i = 0;
+    let done = 0;
+    let hitQuota = false;
+
     async function worker() {
-      while (i < missingCams.length) {
+      while (i < batch.length) {
+        if (hitQuota) return; // 할당량 터지면 나머지 스킵
         const idx = i++;
-        const cam = missingCams[idx];
-        meta.textContent = `ID 해석 ${idx + 1}/${missingCams.length}…`;
+        const cam = batch[idx];
+        meta.textContent = `ID 해석 ${done + 1}/${batch.length} (오늘 한도 ${RESOLVE_DAILY_BUDGET})…`;
         meta.className = 'list-meta warn';
         try {
           await ensureVideoId(cam, false);
+          consumeResolveBudget(1);
+          done++;
 
-          // 정상적으로 라이브 ID를 찾았으면 실패 상태가 남아 있지 않도록 정리
           const all = loadResolvedMap();
           const key = camKey(cam);
           if (all[key]?.status) {
@@ -1369,18 +1453,22 @@
           }
         } catch (e) {
           console.warn('resolve', cam.name, e.message);
+          consumeResolveBudget(1); // 실패도 1회 소모 (재시도 폭주 방지)
+          done++;
 
           if (e.code === 'no_live') {
             setResolveStatus(cam, 'offline', '현재 라이브 진행중이지 않음');
+          } else if (e.code === 'quota' || isQuotaMessage(e.message)) {
+            setResolveStatus(cam, 'quota', 'YouTube 할당량 초과 · 내일 자동 재시도');
+            hitQuota = true; // 이후 자동 해석 중단
           } else {
-            // 429 할당량 초과, 네트워크 오류 등도 자동 재시도하지 않도록 기록
             setResolveStatus(cam, 'error', e.message || '라이브 확인 실패');
           }
         }
       }
     }
     const workers = [];
-    for (let w = 0; w < Math.min(RESOLVE_CONCURRENCY, missingCams.length); w++) workers.push(worker());
+    for (let w = 0; w < Math.min(RESOLVE_CONCURRENCY, batch.length); w++) workers.push(worker());
     await Promise.all(workers);
     resolveQueueRunning = false;
     updateListMeta();
@@ -1551,8 +1639,8 @@
     const sorted = [...filtered].sort((a, b) => {
       const statusA = getResolveStatus(a);
       const statusB = getResolveStatus(b);
-      const offlineA = statusA?.status === 'offline' || statusA?.status === 'error';
-      const offlineB = statusB?.status === 'offline' || statusB?.status === 'error';
+      const offlineA = statusA?.status === 'offline' || statusA?.status === 'error' || statusA?.status === 'quota';
+      const offlineB = statusB?.status === 'offline' || statusB?.status === 'error' || statusB?.status === 'quota';
       if (offlineA && !offlineB) return 1;
       if (!offlineA && offlineB) return -1;
 
@@ -1574,6 +1662,8 @@
 
       if (resolveStatus?.status === 'offline') {
         initial = '라이브 진행중이지 않음';
+      } else if (resolveStatus?.status === 'quota') {
+        initial = '할당량 초과';
       } else if (resolveStatus?.status === 'error') {
         initial = '확인 실패';
       } else if (n != null && n !== '') {
@@ -1618,6 +1708,8 @@
           } catch (e) {
             if (e.code === 'no_live') {
               setResolveStatus(c, 'offline', '현재 라이브 진행중이지 않음');
+            } else if (e.code === 'quota' || isQuotaMessage(e.message)) {
+              setResolveStatus(c, 'quota', 'YouTube 할당량 초과 · 내일 자동 재시도');
             } else {
               setResolveStatus(c, 'error', e.message || '라이브 확인 실패');
             }
@@ -1661,10 +1753,12 @@
     saveViewersToSS(nextSS);
     updateListMeta();
 
+    // 미해석 + 분산 TTL 만료분만 자동 큐에 넣음 (하루 예산으로 잘라서 처리)
     const missing = sorted.filter(c => {
-      if (!c.externalUrl || getStoredVideoId(c)) return false;
+      if (!c.externalUrl) return false;
+      if (!isVideoIdStale(c)) return false;
       const status = getResolveStatus(c);
-      if (status && (status.status === 'offline' || status.status === 'error')) {
+      if (status && (status.status === 'offline' || status.status === 'error' || status.status === 'quota')) {
         return false;
       }
       return true;
