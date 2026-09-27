@@ -607,7 +607,11 @@
     if (!videoId) return;
     const all = loadResolvedMap();
     const key = camKey(cam);
-    all[key] = { videoId, ts: Date.now() };
+    all[key] = {
+      videoId,
+      name: displayCamName(cam.name),  // 이름 추가
+      ts: Date.now()
+    };
     saveResolvedMap(all);
     saveResolvedToFirebase({ [key]: all[key] });
   }
@@ -623,7 +627,12 @@
   function setResolveStatus(cam, status, message = '') {
     const all = loadResolvedMap();
     const key = camKey(cam);
-    all[key] = { status, message, ts: Date.now() };
+    all[key] = {
+      status,
+      message,
+      name: displayCamName(cam.name),  // 이름 추가
+      ts: Date.now()
+    };
     saveResolvedMap(all);
     saveResolvedToFirebase({ [key]: all[key] });
   }
