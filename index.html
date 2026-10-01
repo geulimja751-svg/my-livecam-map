@@ -425,9 +425,9 @@
 <div class="pick-hint" id="pickHint">지도를 클릭해 카메라 위치를 선택하세요</div>
 <div class="hint" id="hint">지도 위 점을 눌러보세요</div>
 <div class="style-switch" id="styleSwitch">
-  <button data-style="dark" class="active">다크</button>
+  <button data-style="dark">다크</button>
   <button data-style="clean">한글</button>
-  <button data-style="satellite">위성</button>
+  <button data-style="satellite" class="active">위성</button>
 </div>
 <div class="list-panel" id="listPanel">
   <div class="list-head">
@@ -969,9 +969,9 @@
     }
     return L.tileLayer(s.url, s.options);
   }
-  let tileLayer = createStyleLayer('dark').addTo(map);
-  let currentStyle = 'dark';
-  map.setMaxZoom(styles.dark.mapMaxZoom);
+  let tileLayer = createStyleLayer('satellite').addTo(map);
+  let currentStyle = 'satellite';
+  map.setMaxZoom(styles.satellite.mapMaxZoom);
   function switchStyle(name) {
     if (name === currentStyle) return;
     document.querySelectorAll('#styleSwitch button').forEach(b =>
