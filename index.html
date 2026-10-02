@@ -541,6 +541,7 @@
   const viewerCache = new Map();
   let activeCamForPanel = null;
   let resolvedCache = null;
+  let firebaseDocCount = null; // Firestore resolved 문서 필드 개수
 
   function formatViewers(n) {
     if (n == null || n === '') return null;
@@ -630,14 +631,19 @@
       const snap = await RESOLVED_DOC.get();
       if (snap.exists) {
         const serverData = snap.data() || {};
+        firebaseDocCount = Object.keys(serverData).length;
         const local = loadResolvedMap();
         const merged = { ...local, ...serverData };
         saveResolvedMap(merged);
-        console.log('[Firebase] resolved 로드 완료', Object.keys(merged).length, '개');
+        console.log('[Firebase] resolved 로드 완료', firebaseDocCount, '개');
         return merged;
+      } else {
+        firebaseDocCount = 0;
+        console.log('[Firebase] resolved 문서 없음');
       }
     } catch (e) {
       console.warn('[Firebase] 로드 실패, localStorage만 사용', e.message);
+      firebaseDocCount = null;
     }
     return loadResolvedMap();
   }
@@ -645,6 +651,12 @@
   async function saveResolvedToFirebase(partial) {
     try {
       await RESOLVED_DOC.set(partial, { merge: true });
+      // 저장 후 로컬 맵 기준 개수 갱신 (다음 로드 때 DB와 재동기화)
+      const all = loadResolvedMap();
+      firebaseDocCount = Object.keys(all).filter(k => {
+        const row = all[k];
+        return row && (row.videoId || row.status);
+      }).length;
     } catch (e) {
       console.warn('[Firebase] 저장 실패', e.message);
     }
@@ -1525,14 +1537,20 @@
   let resolveQueueRunning = false;
 
   function updateListMeta() {
-    let n = 0;
-    cams.forEach(c => {
-      if (getStoredVideoId(c)) n++;
-    });
     const budgetLeft = remainingResolveBudget();
     const meta = document.getElementById('listMeta');
-    meta.textContent = `캐시 ${n}/${cams.length} · 오늘 자동갱신 ${budgetLeft}/${RESOLVE_DAILY_BUDGET}`;
-    meta.className = budgetLeft > 0 ? 'list-meta ok' : 'list-meta warn';
+    const dbPart = firebaseDocCount != null
+      ? `DB ${firebaseDocCount}/${cams.length}`
+      : `DB ?/${cams.length}`;
+    let text = dbPart;
+    if (budgetLeft <= 0) {
+      text += ` · 오늘 한도 소진 · 내일 이어서`;
+      meta.className = 'list-meta warn';
+    } else {
+      text += ` · 오늘 자동갱신 ${budgetLeft}/${RESOLVE_DAILY_BUDGET}`;
+      meta.className = 'list-meta ok';
+    }
+    meta.textContent = text;
   }
 
   async function runResolveQueue(missingCams) {
@@ -1540,9 +1558,7 @@
 
     const budget = remainingResolveBudget();
     if (budget <= 0) {
-      const meta = document.getElementById('listMeta');
-      meta.textContent = `오늘 자동갱신 한도 소진 (${RESOLVE_DAILY_BUDGET}개) · 내일 이어서`;
-      meta.className = 'list-meta warn';
+      updateListMeta();
       return;
     }
 
