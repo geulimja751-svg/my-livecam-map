@@ -524,6 +524,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const RESOLVED_DOC = db.collection('livecam').doc('resolved');
+  const STATUS_DOC   = db.collection('livecam').doc('status');
 
   const MAPTILER_KEY = 'EhogGAwYASE0hk398mb8';
   const YOUTUBE_API_KEY = 'AIzaSyBbGHS7EXSuj1t9V187FIr1flIfDMec3xA';
@@ -626,21 +627,36 @@
     } catch (_) {}
   }
 
+  function countMatchedVideoIds(mapObj) {
+    if (!mapObj) return 0;
+    const keys = new Set(cams.map(c => camKey(c)));
+    let n = 0;
+    for (const k of keys) {
+      if (mapObj[k] && mapObj[k].videoId) n++;
+    }
+    return n;
+  }
+
   async function loadResolvedFromFirebase() {
     try {
-      const snap = await RESOLVED_DOC.get();
-      if (snap.exists) {
-        const serverData = snap.data() || {};
-        firebaseDocCount = Object.keys(serverData).length;
-        const local = loadResolvedMap();
-        const merged = { ...local, ...serverData };
-        saveResolvedMap(merged);
-        console.log('[Firebase] resolved 로드 완료', firebaseDocCount, '개');
-        return merged;
-      } else {
-        firebaseDocCount = 0;
-        console.log('[Firebase] resolved 문서 없음');
-      }
+      const [snapResolved, snapStatus] = await Promise.all([
+        RESOLVED_DOC.get(),
+        STATUS_DOC.get()
+      ]);
+
+      const serverResolved = snapResolved.exists ? (snapResolved.data() || {}) : {};
+      const serverStatus   = snapStatus.exists   ? (snapStatus.data()   || {}) : {};
+
+      // 현재 cams와 키가 맞는 videoId만 카운트 (고아 키 제외)
+      firebaseDocCount = countMatchedVideoIds(serverResolved);
+
+      const local = loadResolvedMap();
+      // status 먼저, resolved가 나중에 덮어씀 (성공 우선)
+      const merged = { ...local, ...serverStatus, ...serverResolved };
+      saveResolvedMap(merged);
+
+      console.log('[Firebase] resolved(매칭)', firebaseDocCount, '개 / status', Object.keys(serverStatus).length, '개 / resolved원본', Object.keys(serverResolved).length, '개');
+      return merged;
     } catch (e) {
       console.warn('[Firebase] 로드 실패, localStorage만 사용', e.message);
       firebaseDocCount = null;
@@ -648,17 +664,23 @@
     return loadResolvedMap();
   }
 
-  async function saveResolvedToFirebase(partial) {
+  async function saveSuccessToFirebase(key, data) {
     try {
-      await RESOLVED_DOC.set(partial, { merge: true });
-      // 저장 후 로컬 맵 기준 개수 갱신 (다음 로드 때 DB와 재동기화)
-      const all = loadResolvedMap();
-      firebaseDocCount = Object.keys(all).filter(k => {
-        const row = all[k];
-        return row && (row.videoId || row.status);
-      }).length;
+      await RESOLVED_DOC.set({ [key]: data }, { merge: true });
+      await STATUS_DOC.set({ [key]: firebase.firestore.FieldValue.delete() }, { merge: true });
+      firebaseDocCount = countMatchedVideoIds(loadResolvedMap());
     } catch (e) {
-      console.warn('[Firebase] 저장 실패', e.message);
+      console.warn('[Firebase] 성공 저장 실패', e.message);
+    }
+  }
+
+  async function saveStatusToFirebase(key, data) {
+    try {
+      await STATUS_DOC.set({ [key]: data }, { merge: true });
+      await RESOLVED_DOC.set({ [key]: firebase.firestore.FieldValue.delete() }, { merge: true });
+      firebaseDocCount = countMatchedVideoIds(loadResolvedMap());
+    } catch (e) {
+      console.warn('[Firebase] status 저장 실패', e.message);
     }
   }
 
@@ -705,11 +727,11 @@
     const key = camKey(cam);
     all[key] = {
       videoId,
-      name: displayCamName(cam.name),  // 이름 추가
+      name: displayCamName(cam.name),
       ts: Date.now()
     };
     saveResolvedMap(all);
-    saveResolvedToFirebase({ [key]: all[key] });
+    saveSuccessToFirebase(key, all[key]);
   }
 
   function clearStoredVideoId(cam) {
@@ -717,7 +739,12 @@
     const key = camKey(cam);
     delete all[key];
     saveResolvedMap(all);
-    saveResolvedToFirebase({ [key]: firebase.firestore.FieldValue.delete() });
+    Promise.all([
+      RESOLVED_DOC.set({ [key]: firebase.firestore.FieldValue.delete() }, { merge: true }),
+      STATUS_DOC.set({ [key]: firebase.firestore.FieldValue.delete() }, { merge: true })
+    ]).then(() => {
+      firebaseDocCount = countMatchedVideoIds(loadResolvedMap());
+    }).catch(e => console.warn('[Firebase] 삭제 실패', e.message));
   }
 
   function setResolveStatus(cam, status, message = '') {
@@ -726,11 +753,11 @@
     all[key] = {
       status,
       message,
-      name: displayCamName(cam.name),  // 이름 추가
+      name: displayCamName(cam.name),
       ts: Date.now()
     };
     saveResolvedMap(all);
-    saveResolvedToFirebase({ [key]: all[key] });
+    saveStatusToFirebase(key, all[key]);
   }
 
   function isQuotaMessage(msg) {
@@ -1539,10 +1566,20 @@
   function updateListMeta() {
     const budgetLeft = remainingResolveBudget();
     const meta = document.getElementById('listMeta');
-    const dbPart = firebaseDocCount != null
-      ? `DB ${firebaseDocCount}/${cams.length}`
-      : `DB ?/${cams.length}`;
-    let text = dbPart;
+
+    // 표시용: 현재 cams 기준 매칭된 videoId 수
+    let matched = 0;
+    let stale = 0;
+    cams.forEach(c => {
+      if (getStoredVideoId(c)) {
+        matched++;
+        if (isVideoIdStale(c)) stale++;
+      }
+    });
+    if (firebaseDocCount == null) firebaseDocCount = matched;
+
+    let text = `DB ${matched}/${cams.length}`;
+    if (stale > 0) text += ` · 만료 ${stale}`;
     if (budgetLeft <= 0) {
       text += ` · 오늘 한도 소진 · 내일 이어서`;
       meta.className = 'list-meta warn';
