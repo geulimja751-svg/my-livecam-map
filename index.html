@@ -234,6 +234,16 @@
   @keyframes sp{ to{ transform:rotate(360deg); } }
   .panel-body{ padding:14px 16px; overflow-y:auto; font-size:12.5px; color:var(--text-dim); line-height:1.6; }
   .panel-body .loc{ color:var(--text); font-weight:600; font-size:13px; margin-bottom:4px; }
+  .panel-body .yt-title{
+    color:var(--text); font-weight:600; font-size:13px; margin-bottom:6px; line-height:1.4;
+  }
+  .panel-body .yt-title.dim{ color:var(--text-dim); font-weight:500; }
+  .panel-body .memo{
+    color:var(--text-dim); font-size:12.5px; margin-bottom:6px; line-height:1.5;
+  }
+  .panel-body .live-start{
+    font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:4px;
+  }
   .panel-body .src{ font-family:var(--mono); font-size:10.5px; color:#4d5a6a; margin-top:8px; word-break:break-all; }
   .hint{
     position:absolute; left:50%; bottom:20px; transform:translateX(-50%); z-index:900;
@@ -471,8 +481,9 @@
     </div>
   </div>
   <div class="panel-body">
-    <div class="loc" id="panelLoc">-</div>
-    <div id="panelDesc">-</div>
+    <div class="yt-title dim" id="panelYtTitle">-</div>
+    <div class="memo" id="panelDesc">-</div>
+    <div class="live-start" id="panelLiveStart" style="display:none"></div>
     <div class="src" id="panelSrc">-</div>
     <div class="cache-info" id="panelCacheInfo" style="display:none"></div>
   </div>
@@ -885,11 +896,98 @@
     return batch[videoId] != null ? batch[videoId] : null;
   }
 
+  /** 영상 제목 + 라이브 시작시각 + 시청자 (1회 API). 제목/시작시각은 DB에 캐시 */
+  async function fetchVideoDetails(videoId) {
+    if (!videoId || !YOUTUBE_API_KEY) return null;
+    try {
+      const url =
+        'https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=' +
+        encodeURIComponent(videoId) +
+        '&key=' + encodeURIComponent(YOUTUBE_API_KEY);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('yt ' + res.status);
+      const data = await res.json();
+      const item = (data.items || [])[0];
+      if (!item) return null;
+      const title = item.snippet && item.snippet.title ? item.snippet.title : null;
+      const live = item.liveStreamingDetails || {};
+      const liveStart = live.actualStartTime || live.scheduledStartTime || null;
+      const raw = live.concurrentViewers;
+      const count = raw != null ? Number(raw) : null;
+      if (count != null) viewerCache.set(videoId, { count, ts: Date.now() });
+      return { title, liveStart, viewers: count };
+    } catch (e) {
+      console.warn('영상 상세 조회 실패', e.message);
+      return null;
+    }
+  }
+
+  function mergeVideoMetaToCache(cam, meta) {
+    if (!cam || !meta) return;
+    const key = camKey(cam);
+    const all = loadResolvedMap();
+    const prev = all[key] || {};
+    const videoId = prev.videoId || getStoredVideoId(cam);
+    if (!videoId) return;
+    const next = {
+      ...prev,
+      videoId,
+      name: prev.name || displayCamName(cam.name),
+      ts: prev.ts || Date.now()
+    };
+    if (meta.title) next.ytTitle = meta.title;
+    if (meta.liveStart) next.liveStart = meta.liveStart;
+    all[key] = next;
+    saveResolvedMap(all);
+    if (typeof saveSuccessToFirebase === 'function') {
+      saveSuccessToFirebase(key, next);
+    }
+  }
+
   function setPanelViewers(n) {
     const el = document.getElementById('panelViewers');
     if (!el) return;
     const t = formatViewers(n);
     el.textContent = t ? ('시청 ' + t) : '';
+  }
+
+  function setPanelYtMeta(cam, opts = {}) {
+    const titleEl = document.getElementById('panelYtTitle');
+    const startEl = document.getElementById('panelLiveStart');
+    if (!titleEl) return;
+
+    const row = cam ? loadResolvedMap()[camKey(cam)] : null;
+    const title = opts.title != null ? opts.title : (row && row.ytTitle);
+    const liveStart = opts.liveStart != null ? opts.liveStart : (row && row.liveStart);
+
+    if (title) {
+      titleEl.textContent = title;
+      titleEl.classList.remove('dim');
+    } else if (opts.loading) {
+      titleEl.textContent = '영상 제목 불러오는 중…';
+      titleEl.classList.add('dim');
+    } else {
+      titleEl.textContent = '-';
+      titleEl.classList.add('dim');
+    }
+
+    if (startEl) {
+      if (liveStart) {
+        try {
+          const d = new Date(liveStart);
+          startEl.style.display = 'block';
+          startEl.textContent = '라이브 시작: ' + d.toLocaleString('ko-KR', {
+            year: 'numeric', month: 'numeric', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          });
+        } catch (_) {
+          startEl.style.display = 'none';
+        }
+      } else {
+        startEl.style.display = 'none';
+        startEl.textContent = '';
+      }
+    }
   }
 
   const cams = [
@@ -1063,10 +1161,10 @@
     activeCamForPanel = cam;
 
     document.getElementById('panelTitle').textContent = displayCamName(cam.name);
-    document.getElementById('panelLoc').textContent = displayCamName(cam.name);
-    document.getElementById('panelDesc').textContent = cam.desc || '';
+    document.getElementById('panelDesc').textContent = cam.desc || '메모 없음';
     setPanelViewers(null);
     setPanelCacheInfo(null);
+    setPanelYtMeta(null);
 
     const videoWrap = document.getElementById('videoWrap');
     const panelSrc = document.getElementById('panelSrc');
@@ -1152,9 +1250,18 @@
 
       setPanelCacheInfo(cam);
 
+      // 캐시된 유튜브 제목/시작시각 먼저 표시
+      const cachedRow = loadResolvedMap()[camKey(cam)];
+      if (cachedRow && (cachedRow.ytTitle || cachedRow.liveStart)) {
+        setPanelYtMeta(cam);
+      } else {
+        setPanelYtMeta(cam, { loading: true });
+      }
+
       // 모바일에서는 소리 끄고 autoplay (브라우저 정책)
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+        || (navigator.maxTouchPoints > 0 && window.innerWidth < 900)
+        || (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
       
       const muteParam = isMobile ? 1 : 0;
       const showControls = document.getElementById('ctrlToggle')?.checked !== false ? 1 : 0;
@@ -1168,8 +1275,20 @@
         ? stripEmbed(cam.externalUrl)
         : ('https://www.youtube.com/watch?v=' + videoId);
 
-      fetchOneViewer(videoId).then(n => {
-        if (activeCamForPanel === cam) setPanelViewers(n);
+      // 제목·라이브시작·시청자 (API 1회). 제목/시작은 DB 캐시
+      fetchVideoDetails(videoId).then(meta => {
+        if (activeCamForPanel !== cam) return;
+        if (meta) {
+          mergeVideoMetaToCache(cam, meta);
+          setPanelYtMeta(cam, { title: meta.title, liveStart: meta.liveStart });
+          if (meta.viewers != null) setPanelViewers(meta.viewers);
+        } else {
+          // API 실패 시 캐시만 유지, 시청자만 별도 시도
+          setPanelYtMeta(cam);
+          fetchOneViewer(videoId).then(n => {
+            if (activeCamForPanel === cam) setPanelViewers(n);
+          });
+        }
       });
     } else {
       videoWrap.innerHTML = '<div class="video-state">재생 정보 없음</div>';
@@ -1517,9 +1636,9 @@
     activeCamForPanel = null;
     document.getElementById('videoFooter').style.display = 'none';
     document.getElementById('panelTitle').textContent = c.cctvname || 'CCTV';
-    document.getElementById('panelLoc').textContent = c.cctvname || '-';
     document.getElementById('panelDesc').textContent = c.roadsectionid ? `구간: ${c.roadsectionid}` : 'ITS CCTV';
     document.getElementById('panelSrc').textContent = 'source: ITS';
+    setPanelYtMeta(null);
     setPanelViewers(null);
     const videoWrap = document.getElementById('videoWrap');
     videoWrap.innerHTML = '<div class="video-state" id="cctvState"><div class="spin"></div><div>불러오는 중…</div></div>';
