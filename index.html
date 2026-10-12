@@ -225,12 +225,15 @@
     white-space:nowrap;
   }
   .video-footer button.btn-refresh:disabled{ opacity:0.5; cursor:wait; }
-  .video-footer button.btn-delete{
-    font-size:12px; font-weight:600; color:var(--live-red); text-decoration:none;
-    padding:6px 12px; border-radius:8px; border:1px solid rgba(255,77,94,0.4);
-    background:rgba(255,77,94,0.08); cursor:pointer; font-family:inherit;
+  .panel-head .btn-delete{
+    appearance:none; background:transparent; border:none;
+    color:var(--text-dim); font-size:12px; font-weight:600;
+    padding:4px 8px; border-radius:6px; cursor:pointer; font-family:inherit;
+    flex-shrink:0;
   }
-  .video-footer button.btn-delete:hover{ background:rgba(255,77,94,0.18); }
+  .panel-head .btn-delete:hover{
+    color:var(--live-red); background:rgba(255,77,94,0.12);
+  }
   .video-footer label.ctrl-label{
     display:flex; align-items:center; gap:4px; font-size:12px;
     color:var(--text-dim); cursor:pointer; user-select:none; white-space:nowrap;
@@ -484,6 +487,7 @@
   <div class="panel-head">
     <span class="live-badge"><span class="dot"></span>LIVE</span>
     <div class="panel-title" id="panelTitle">-</div>
+    <button type="button" class="btn-delete" id="panelDeleteBtn" title="이 카메라를 목록과 Firebase에서 삭제" style="display:none">삭제</button>
     <button class="panel-close" id="panelClose">✕</button>
   </div>
   <div class="video-wrap" id="videoWrap"></div>
@@ -495,7 +499,6 @@
         컨트롤러
       </label>
       <button type="button" class="btn-refresh" id="panelRefreshBtn" style="display:none">ID 갱신</button>
-      <button type="button" class="btn-delete" id="panelDeleteBtn" title="이 카메라를 목록과 Firebase에서 삭제">삭제</button>
       <a id="openTabBtn" href="#" target="_blank" rel="noopener noreferrer">새 탭에서 열기 ↗</a>
       <a id="openYtBtn" href="#" target="_blank" rel="noopener noreferrer" style="display:none">YouTube로 열기 ↗</a>
     </div>
