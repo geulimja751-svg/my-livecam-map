@@ -20,11 +20,13 @@
   *{box-sizing:border-box;}
   html,body{
     margin:0; padding:0; height:100%; width:100%;
+    height:100dvh; max-height:100dvh;
     background:var(--bg); color:var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Malgun Gothic',
       'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji',
       'Twemoji Mozilla', sans-serif;
     overflow:hidden;
+    position:fixed; inset:0; /* 모바일/패드 주소창 리사이즈로 레이아웃 깨짐 방지 */
   }
   body, #map, .topbar, .style-switch, .add-btn, .count-pill,
   .list-panel, .panel, .hint, .pick-hint { -webkit-user-select:none; user-select:none; }
@@ -32,8 +34,8 @@
   .search-box input {
     -webkit-user-select:text; user-select:text;
   }
-  #map{ position:absolute; inset:0; background:var(--bg); }
-  .leaflet-container{ background:var(--bg); }
+  #map{ position:absolute; inset:0; width:100%; height:100%; background:var(--bg); }
+  .leaflet-container{ background:var(--bg); width:100% !important; height:100% !important; }
   .dark-tiles{ filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6); }
   .topbar{
     position:absolute; top:0; left:0; right:0; z-index:1000;
@@ -129,8 +131,17 @@
   }
   @media (min-width:720px){
     .panel{ top:16px; right:16px; bottom:16px; width:380px; min-width:280px;
-      max-width:min(1600px,96vw); border-radius:14px; transform:translateX(120%); }
-    .panel.open{ transform:translateX(0); }
+      max-width:min(1600px,96vw); border-radius:14px; transform:translateX(120%);
+      /* 패드/안드로이드 합성 레이어 깨짐 완화 */
+      -webkit-transform:translateX(120%);
+      will-change:transform;
+      backface-visibility:hidden;
+    }
+    .panel.open{ transform:translateX(0); -webkit-transform:translateX(0); }
+  }
+  /* 태블릿(패드) 중간 폭 */
+  @media (min-width:720px) and (max-width:1100px){
+    .panel{ width:min(360px,40vw); min-width:260px; }
   }
   @media (max-width:719px){
     .brand{ display:none; }
@@ -211,8 +222,15 @@
     font-size:12px; font-weight:600; color:var(--accent); text-decoration:none;
     padding:6px 12px; border-radius:8px; border:1px solid rgba(79,179,255,0.35);
     background:rgba(79,179,255,0.08); cursor:pointer; font-family:inherit;
+    white-space:nowrap;
   }
   .video-footer button.btn-refresh:disabled{ opacity:0.5; cursor:wait; }
+  .video-footer button.btn-delete{
+    font-size:12px; font-weight:600; color:var(--live-red); text-decoration:none;
+    padding:6px 12px; border-radius:8px; border:1px solid rgba(255,77,94,0.4);
+    background:rgba(255,77,94,0.08); cursor:pointer; font-family:inherit;
+  }
+  .video-footer button.btn-delete:hover{ background:rgba(255,77,94,0.18); }
   .video-footer label.ctrl-label{
     display:flex; align-items:center; gap:4px; font-size:12px;
     color:var(--text-dim); cursor:pointer; user-select:none; white-space:nowrap;
@@ -477,7 +495,9 @@
         컨트롤러
       </label>
       <button type="button" class="btn-refresh" id="panelRefreshBtn" style="display:none">ID 갱신</button>
+      <button type="button" class="btn-delete" id="panelDeleteBtn" title="이 카메라를 목록과 Firebase에서 삭제">삭제</button>
       <a id="openTabBtn" href="#" target="_blank" rel="noopener noreferrer">새 탭에서 열기 ↗</a>
+      <a id="openYtBtn" href="#" target="_blank" rel="noopener noreferrer" style="display:none">YouTube로 열기 ↗</a>
     </div>
   </div>
   <div class="panel-body">
@@ -507,7 +527,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" id="modalCancel">취소</button>
-      <button class="btn-generate" id="modalGenerate">코드 생성</button>
+      <button class="btn-generate" id="modalGenerate">저장</button>
     </div>
     <div class="code-result" id="codeResult">
       <pre id="codeText"></pre>
@@ -536,6 +556,7 @@
   const db = firebase.firestore();
   const RESOLVED_DOC = db.collection('livecam').doc('resolved');
   const STATUS_DOC   = db.collection('livecam').doc('status');
+  const CAMS_DOC     = db.collection('livecam').doc('cameras');
 
   const MAPTILER_KEY = 'EhogGAwYASE0hk398mb8';
   const YOUTUBE_API_KEY = 'AIzaSyBbGHS7EXSuj1t9V187FIr1flIfDMec3xA';
@@ -990,7 +1011,7 @@
     }
   }
 
-  const cams = [
+  const SEED_CAMS = [
     // ===== 기타 =====
     { name: "울릉도 천부 해중전망대", lat: 37.54362, lng: 130.874897, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@kiost_ud_oceanresearchstation&keyword=해중전망대", region: "한국", desc: "한국해양과학기술원 울릉도독도해양연구기지에서는 아름다운 울릉도 바다의 수중" },
     // ===== 부산 =====
@@ -1067,6 +1088,42 @@
     { name: "시부야 스크램블 스퀘어", lat: 35.658338, lng: 139.702156, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@shibuyaqws4296&keyword=SHIBUYA", region: "일본", desc: "시부야 스크램블 스퀘어 15층 SHIBUYA QWS(시부야 큐즈) 내  스크램블 홀에서 스크램블 교차로와 신주쿠 방면" },
     { name: "도쿄돔", lat: 35.704648, lng: 139.753084, externalUrl: "https://geulimja751-svg.github.io/live-redirect/?channel=@TokyoDomeCity_Official&keyword=Tokyo%20Dome", region: "일본", desc: "주요 특징은 야구와 콘서트를 위한 유명한 실내 경기장인 도쿄 돔으로, 그 모양 때문에 흔히 '빅 에그'라고 불립니다. 그 주변에는 놀이공원, 호텔, 그리고 많은 상점과 식당이 있습니다." },
   ];
+
+  // Firebase cameras 문서에서 로드. 비어 있으면 SEED_CAMS로 초기화
+  let cams = [];
+
+  async function loadCamsFromFirebase() {
+    try {
+      const snap = await CAMS_DOC.get();
+      if (snap.exists) {
+        const data = snap.data() || {};
+        const items = Array.isArray(data.items) ? data.items : [];
+        if (items.length) {
+          console.log('[Firebase] cameras 로드', items.length, '개');
+          return items;
+        }
+      }
+      console.log('[Firebase] cameras 비어있음 → SEED', SEED_CAMS.length, '개 업로드');
+      await CAMS_DOC.set({ items: SEED_CAMS, updatedAt: Date.now() });
+      return SEED_CAMS.map(c => ({ ...c }));
+    } catch (e) {
+      console.warn('[Firebase] cameras 로드 실패, SEED 사용', e.message);
+      return SEED_CAMS.map(c => ({ ...c }));
+    }
+  }
+
+  async function saveCamsToFirebase() {
+    try {
+      await CAMS_DOC.set({ items: cams, updatedAt: Date.now() });
+      console.log('[Firebase] cameras 저장', cams.length, '개');
+      return true;
+    } catch (e) {
+      console.warn('[Firebase] cameras 저장 실패', e.message);
+      return false;
+    }
+  }
+
+
 
   const map = L.map('map', { zoomControl: true, attributionControl: true, minZoom: 3, maxZoom: 18 });
   const styles = {
@@ -1171,6 +1228,10 @@
     const videoFooter = document.getElementById('videoFooter');
     const openTabBtn = document.getElementById('openTabBtn');
     const refreshBtn = document.getElementById('panelRefreshBtn');
+    const deleteBtn = document.getElementById('panelDeleteBtn');
+    const openYtBtnEarly = document.getElementById('openYtBtn');
+    if (deleteBtn) deleteBtn.style.display = '';
+    if (openYtBtnEarly) openYtBtnEarly.style.display = 'none';
 
     videoFooter.style.display = 'flex';
     refreshBtn.style.display = cam.externalUrl ? 'inline-block' : 'none';
@@ -1178,6 +1239,7 @@
     refreshBtn.textContent = 'ID 갱신';
 
     panel.classList.add('open');
+    requestAnimationFrame(() => { refreshMapSize(); setTimeout(refreshMapSize, 320); });
     hint.classList.add('hidden');
 
     let videoId = getStoredVideoId(cam);
@@ -1275,6 +1337,12 @@
         ? stripEmbed(cam.externalUrl)
         : ('https://www.youtube.com/watch?v=' + videoId);
 
+      const openYtBtn = document.getElementById('openYtBtn');
+      if (openYtBtn) {
+        openYtBtn.href = 'https://www.youtube.com/watch?v=' + videoId;
+        openYtBtn.style.display = '';
+      }
+
       // 제목·라이브시작·시청자 (API 1회). 제목/시작은 DB 캐시
       fetchVideoDetails(videoId).then(meta => {
         if (activeCamForPanel !== cam) return;
@@ -1294,6 +1362,8 @@
       videoWrap.innerHTML = '<div class="video-state">재생 정보 없음</div>';
       videoFooter.style.display = 'none';
       panelSrc.textContent = '';
+      const openYtBtn = document.getElementById('openYtBtn');
+      if (openYtBtn) openYtBtn.style.display = 'none';
     }
   }
 
@@ -1355,7 +1425,47 @@
   }
   document.getElementById('panelClose').addEventListener('click', closeCam);
 
+  document.getElementById('panelDeleteBtn')?.addEventListener('click', () => {
+    const cam = activeCamForPanel;
+    if (!cam) return;
+    removeCam(cam);
+  });
+
   const camCountEl = document.getElementById('camCount');
+  function removeCam(cam) {
+    if (!cam) return false;
+    const name = displayCamName(cam.name);
+    if (!confirm('"' + name + '" 카메라를 삭제할까요?\n목록과 Firebase에서 제거됩니다.')) return false;
+
+    // 마커 제거
+    const marker = camMarkers.get(cam);
+    if (marker) {
+      try { map.removeLayer(marker); } catch (_) {}
+      camMarkers.delete(cam);
+    }
+    // 배열에서 제거 (객체 참조 우선, 없으면 키로)
+    const key = camKey(cam);
+    const idx = cams.indexOf(cam);
+    if (idx >= 0) cams.splice(idx, 1);
+    else {
+      const i2 = cams.findIndex(c => camKey(c) === key);
+      if (i2 >= 0) cams.splice(i2, 1);
+    }
+    // videoId 캐시도 정리
+    try { clearStoredVideoId(cam); } catch (_) {}
+
+    saveCamsToFirebase();
+    updateCount();
+    closeCam();
+    const listPanel = document.getElementById('listPanel');
+    if (listPanel && listPanel.classList.contains('open')) {
+      const q = document.getElementById('listSearch');
+      renderList(q ? q.value : '');
+    }
+    console.log('[cams] 삭제됨', name, '남은', cams.length);
+    return true;
+  }
+
   function addCamMarker(cam) {
     const icon = L.divIcon({ className: 'cam-marker', iconSize: [20, 20] });
     const marker = L.marker([cam.lat, cam.lng], { icon }).addTo(map);
@@ -1367,11 +1477,27 @@
   function updateCount() {
     camCountEl.textContent = cams.length + (cctvOn ? cctvLayer.getLayers().length : 0);
   }
-  cams.forEach(addCamMarker);
-  (function fitAllCams() {
+  function fitAllCams() {
     if (!cams.length) { map.setView([35.16, 129.15], 12); return; }
     map.fitBounds(L.latLngBounds(cams.map(c => [c.lat, c.lng])).pad(0.2), { maxZoom: 7, animate: false });
-  })();
+  }
+
+  function refreshMapSize() {
+    try {
+      map.invalidateSize({ animate: false, pan: false });
+    } catch (_) {}
+  }
+  let __mapResizeTimer = null;
+  function scheduleMapResize() {
+    clearTimeout(__mapResizeTimer);
+    __mapResizeTimer = setTimeout(refreshMapSize, 120);
+  }
+  window.addEventListener('resize', scheduleMapResize);
+  window.addEventListener('orientationchange', () => setTimeout(refreshMapSize, 280));
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', scheduleMapResize);
+    visualViewport.addEventListener('scroll', scheduleMapResize);
+  }
 
   // ===== 장소/좌표 검색 =====
   const searchInput = document.getElementById('searchInput');
@@ -1636,6 +1762,8 @@
     activeCamForPanel = null;
     document.getElementById('videoFooter').style.display = 'none';
     document.getElementById('panelTitle').textContent = c.cctvname || 'CCTV';
+    const delBtn = document.getElementById('panelDeleteBtn');
+    if (delBtn) delBtn.style.display = 'none';
     document.getElementById('panelDesc').textContent = c.roadsectionid ? `구간: ${c.roadsectionid}` : 'ITS CCTV';
     document.getElementById('panelSrc').textContent = 'source: ITS';
     setPanelYtMeta(null);
@@ -2133,14 +2261,22 @@
       return;
     }
     errEl.classList.remove('show');
-    codeText.textContent = camData.videoId
-      ? `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, videoId: "${camData.videoId}", desc: "${desc.replace(/"/g,'\\"')}" },`
-      : `{ name: "${name.replace(/"/g,'\\"')}", lat: ${camData.lat}, lng: ${camData.lng}, externalUrl: "${camData.externalUrl.replace(/"/g,'\\"')}", desc: "${desc.replace(/"/g,'\\"')}" },`;
-    codeResult.classList.add('show');
+    if (!camData.region) {
+      if (camData.lat > 33 && camData.lat < 39 && camData.lng > 124 && camData.lng < 132) camData.region = '한국';
+      else if (camData.lat > 30 && camData.lat < 46 && camData.lng > 129 && camData.lng < 146) camData.region = '일본';
+    }
     addCamMarker(camData);
     cams.push(camData);
     updateCount();
+    saveCamsToFirebase().then(ok => {
+      codeText.textContent = ok
+        ? ('Firebase에 저장됨 (' + cams.length + '개)\n이름: ' + name + '\n좌표: ' + camData.lat + ', ' + camData.lng)
+        : 'Firebase 저장 실패 — 콘솔을 확인하세요.';
+      codeResult.classList.add('show');
+      btnCopy.textContent = ok ? '메시지 복사' : '코드 복사';
+    });
   });
+
   btnCopy.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(codeText.textContent);
@@ -2193,8 +2329,12 @@
     handle.addEventListener('touchstart', onDown, { passive: false });
   })();
 
-  // 페이지 시작 시 Firebase 캐시 로드
+  // 페이지 시작: 카메라 목록(Firebase) + resolved 캐시 로드
   (async () => {
+    cams = await loadCamsFromFirebase();
+    cams.forEach(addCamMarker);
+    fitAllCams();
+    requestAnimationFrame(() => { refreshMapSize(); setTimeout(refreshMapSize, 200); });
     await loadResolvedFromFirebase();
     updateCount();
     updateListMeta();
