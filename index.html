@@ -538,6 +538,11 @@
       <div class="err" id="fUrlErr">링크를 인식하지 못했어요.</div>
     </div>
     <div class="field">
+      <label>강제 Video ID (선택)</label>
+      <input type="text" id="fForceVideoId" placeholder="예: DjdUEyjx8GM — 비우면 자동 해석" maxlength="20" autocomplete="off">
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.4">오래 켜진 라이브 등 자동 갱신이 안 될 때 11자리 ID를 직접 지정합니다.</div>
+    </div>
+    <div class="field">
       <label>설명 (선택)</label>
       <textarea id="fDesc" rows="2"></textarea>
     </div>
@@ -1263,7 +1268,7 @@
     if (openYtBtnEarly) openYtBtnEarly.style.display = 'none';
 
     videoFooter.style.display = 'flex';
-    refreshBtn.style.display = cam.externalUrl ? 'inline-block' : 'none';
+    refreshBtn.style.display = (cam.externalUrl || cam.videoId) ? 'inline-block' : 'none';
     refreshBtn.disabled = false;
     refreshBtn.textContent = 'ID 갱신';
 
@@ -1403,20 +1408,47 @@
     }
   });
 
-  document.getElementById('panelRefreshBtn').addEventListener('click', async () => {
-    const cam = activeCamForPanel;
-    if (!cam || !cam.externalUrl) return;
-    const btn = document.getElementById('panelRefreshBtn');
-    btn.disabled = true;
-    btn.textContent = '갱신 중…';
-    clearStoredVideoId(cam);
+  function confirmRefreshForcedVideoId(cam) {
+    if (!cam || !cam.videoId) return true;
+    return confirm(
+      '해당 라이브캠은 Video ID 값이 지정되어 있습니다.\n' +
+      '강제 ID: ' + cam.videoId + '\n\n' +
+      '갱신하면 강제 ID가 해제되고 live-redirect로 다시 해석합니다.\n계속하시겠습니까?'
+    );
+  }
 
+  async function runManualRefresh(cam) {
+    if (!cam) return null;
+    if (!confirmRefreshForcedVideoId(cam)) return null;
+    // 강제 videoId 해제 후 재해석
+    if (cam.videoId) {
+      delete cam.videoId;
+      await saveCamsToFirebase();
+    }
+    clearStoredVideoId(cam);
     try {
       const all = loadResolvedMap();
       delete all[camKey(cam)];
       saveResolvedMap(all);
+    } catch (_) {}
+    if (!cam.externalUrl) throw Object.assign(new Error('live-redirect 링크가 없어 자동 해석할 수 없습니다'), { code: 'no_url' });
+    return await ensureVideoId(cam, true);
+  }
 
-      const id = await ensureVideoId(cam, true);
+  document.getElementById('panelRefreshBtn').addEventListener('click', async () => {
+    const cam = activeCamForPanel;
+    if (!cam || (!cam.externalUrl && !cam.videoId)) return;
+    const btn = document.getElementById('panelRefreshBtn');
+    btn.disabled = true;
+    btn.textContent = '갱신 중…';
+
+    try {
+      const id = await runManualRefresh(cam);
+      if (id === null) {
+        btn.textContent = 'ID 갱신';
+        btn.disabled = false;
+        return;
+      }
       const marker = camMarkers.get(cam);
 
       if (marker) {
@@ -2131,7 +2163,7 @@
       li.innerHTML =
         `<span class="tag"></span><span class="nm">${displayCamName(c.name)}</span>` +
         `<span class="viewers${has ? ' has-count' : ''}${statusClass}">${initial}</span>` +
-        (c.externalUrl
+        ((c.externalUrl || c.videoId)
           ? `<button type="button" class="btn-rid" data-refresh="1" title="live-redirect 재해석">갱신</button>`
           : '');
       li.addEventListener('click', (ev) => {
@@ -2149,15 +2181,13 @@
           ev.stopPropagation();
           ridBtn.disabled = true;
           ridBtn.textContent = '…';
-          clearStoredVideoId(c);
-
           try {
-            const all = loadResolvedMap();
-            delete all[camKey(c)];
-            saveResolvedMap(all);
-
-            await ensureVideoId(c, true);
-
+            const id = await runManualRefresh(c);
+            if (id === null) {
+              ridBtn.textContent = '갱신';
+              ridBtn.disabled = false;
+              return;
+            }
             ridBtn.textContent = 'OK';
             setTimeout(() => renderList(listSearch.value), 300);
           } catch (e) {
@@ -2165,6 +2195,8 @@
               setResolveStatus(c, 'offline', '현재 라이브 진행중이지 않음');
             } else if (e.code === 'quota' || isQuotaMessage(e.message)) {
               setResolveStatus(c, 'quota', 'YouTube 할당량 초과 · 내일 자동 재시도');
+            } else if (e.code === 'no_url') {
+              setResolveStatus(c, 'error', e.message);
             } else {
               setResolveStatus(c, 'error', e.message || '라이브 확인 실패');
             }
@@ -2281,6 +2313,7 @@
     document.getElementById('modalTitle').textContent = '카메라 추가';
     document.getElementById('fName').value = '';
     document.getElementById('fUrl').value = '';
+    document.getElementById('fForceVideoId').value = '';
     document.getElementById('fDesc').value = '';
     document.getElementById('fUrlErr').classList.remove('show');
     codeResult.classList.remove('show');
@@ -2317,7 +2350,8 @@
     document.getElementById('modalCoord').textContent =
       '위도 ' + Number(cam.lat).toFixed(6) + ', 경도 ' + Number(cam.lng).toFixed(6) + ' (위치 유지)';
     document.getElementById('fName').value = cam.name || '';
-    document.getElementById('fUrl').value = cam.externalUrl || (cam.videoId ? ('https://www.youtube.com/watch?v=' + cam.videoId) : '');
+    document.getElementById('fUrl').value = cam.externalUrl || '';
+    document.getElementById('fForceVideoId').value = cam.videoId || '';
     document.getElementById('fDesc').value = (cam.desc && cam.desc !== '설명 없음') ? cam.desc : (cam.desc || '');
     document.getElementById('fUrlErr').classList.remove('show');
     codeResult.classList.remove('show');
@@ -2332,8 +2366,9 @@
     const saveBtn = document.getElementById('modalGenerate');
     const name = document.getElementById('fName').value.trim() || '이름 없는 카메라';
     const urlRaw = document.getElementById('fUrl').value.trim();
+    const forceRaw = (document.getElementById('fForceVideoId').value || '').trim();
     const desc = document.getElementById('fDesc').value.trim() || '설명 없음';
-    const vid = extractYoutubeId(urlRaw);
+    const vidFromUrl = extractYoutubeId(urlRaw);
     const errEl = document.getElementById('fUrlErr');
     if (!pickedLatLng && !editingCam) {
       alert('위치가 없습니다. 지도에서 위치를 다시 선택해 주세요.');
@@ -2341,16 +2376,32 @@
     }
     const lat = editingCam ? +Number(editingCam.lat).toFixed(6) : +pickedLatLng.lat.toFixed(6);
     const lng = editingCam ? +Number(editingCam.lng).toFixed(6) : +pickedLatLng.lng.toFixed(6);
-    let camData;
-    if (vid) {
-      camData = { name, lat, lng, videoId: vid, desc };
-    } else if (/^https?:\/\//i.test(urlRaw)) {
-      camData = { name, lat, lng, externalUrl: urlRaw, desc };
-    } else {
+
+    let forceId = null;
+    if (forceRaw) {
+      forceId = extractYoutubeId(forceRaw) || (/^[a-zA-Z0-9_-]{11}$/.test(forceRaw) ? forceRaw : null);
+      if (!forceId) {
+        alert('강제 Video ID는 11자리 유튜브 ID 형식이어야 합니다.');
+        return;
+      }
+    }
+
+    let camData = { name, lat, lng, desc };
+    if (/^https?:\/\//i.test(urlRaw)) {
+      camData.externalUrl = urlRaw;
+    } else if (urlRaw && !vidFromUrl && !forceId) {
+      errEl.classList.add('show');
+      return;
+    } else if (vidFromUrl && !forceId && !urlRaw.startsWith('http')) {
+      camData.videoId = vidFromUrl;
+    }
+    if (forceId) camData.videoId = forceId;
+    if (!camData.externalUrl && !camData.videoId) {
       errEl.classList.add('show');
       return;
     }
     errEl.classList.remove('show');
+
     if (!camData.region) {
       if (camData.lat > 33 && camData.lat < 39 && camData.lng > 124 && camData.lng < 132) camData.region = '한국';
       else if (camData.lat > 30 && camData.lat < 46 && camData.lng > 129 && camData.lng < 146) camData.region = '일본';
@@ -2399,13 +2450,11 @@
         target.lng = camData.lng;
         target.desc = camData.desc;
         if (camData.region) target.region = camData.region;
-        if (camData.videoId) {
-          delete target.externalUrl;
-          target.videoId = camData.videoId;
-        } else if (camData.externalUrl) {
-          delete target.videoId;
-          target.externalUrl = camData.externalUrl;
-        }
+        // 링크 / 강제 ID 각각 반영 (둘 다 가능)
+        if (camData.externalUrl) target.externalUrl = camData.externalUrl;
+        else delete target.externalUrl;
+        if (camData.videoId) target.videoId = camData.videoId;
+        else delete target.videoId;
         try {
           if (oldKey !== camKey(target)) clearStoredVideoId(oldSnap);
         } catch (_) {}
