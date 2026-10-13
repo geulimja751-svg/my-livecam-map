@@ -398,13 +398,21 @@
     opacity:1;
     transform:scale(1);
   }
-  .list-hover-preview iframe{
+  .list-hover-preview iframe,
+  .list-hover-preview img.thumb{
     width:100%;
     height:100%;
     border:0;
     display:block;
     background:#000;
     pointer-events:none;
+    object-fit:cover;
+  }
+  .list-hover-preview .hover-loading{
+    position:absolute; left:0; right:0; bottom:0;
+    padding:4px 8px; font-size:10px; color:rgba(255,255,255,.75);
+    background:linear-gradient(transparent, rgba(0,0,0,.65));
+    font-family:var(--mono);
   }
   .list-items li .viewers.status-text{ font-size:9px; min-width:auto; white-space:nowrap; }
   .list-items li .btn-rid{
@@ -1947,29 +1955,53 @@
     listHoverLi = li;
     const wrap = document.createElement('div');
     wrap.className = 'list-hover-preview';
-    const iframe = document.createElement('iframe');
-    iframe.src =
-      `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&controls=0&rel=0`;
-    iframe.allow =
-      'autoplay; encrypted-media; picture-in-picture';
-    iframe.allowFullscreen = true;
-    wrap.appendChild(iframe);
+    wrap.style.position = 'fixed';
+
+    // 1) 썸네일 즉시 표시 (거의 바로 뜸)
+    const img = document.createElement('img');
+    img.className = 'thumb';
+    img.alt = '';
+    img.decoding = 'async';
+    img.src = 'https://i.ytimg.com/vi/' + videoId + '/mqdefault.jpg';
+    wrap.appendChild(img);
+
+    const tip = document.createElement('div');
+    tip.className = 'hover-loading';
+    tip.textContent = '미리보기 로딩…';
+    wrap.appendChild(tip);
+
     document.body.appendChild(wrap);
     listHoverPreview = wrap;
     positionListHoverPreview(li);
     requestAnimationFrame(() => {
       if (listHoverPreview === wrap) wrap.classList.add('show');
     });
+
+    // 2) 짧은 뒤 음소거 라이브 iframe (여전히 호버 중일 때만)
+    listHoverTimer = setTimeout(() => {
+      if (listHoverPreview !== wrap || listHoverCam !== cam) return;
+      if (!li.matches(':hover')) return;
+      const iframe = document.createElement('iframe');
+      iframe.src =
+        'https://www.youtube.com/embed/' + videoId +
+        '?autoplay=1&mute=1&playsinline=1&controls=0&rel=0&modestbranding=1';
+      iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+      iframe.allowFullscreen = true;
+      // 썸네일 위에 덮어 재생
+      wrap.appendChild(iframe);
+      tip.textContent = '';
+    }, 180);
   }
 
   function bindListHoverPreview(li, cam) {
     li.addEventListener('mouseenter', () => {
       closeListHoverPreview();
+      const videoId = getStoredVideoId(cam) || cam.videoId;
+      if (!videoId) return;
+      // 거의 즉시 썸네일 미리보기
       listHoverTimer = setTimeout(() => {
-        if (li.matches(':hover')) {
-          openListHoverPreview(cam, li);
-        }
-      }, 350);
+        if (li.matches(':hover')) openListHoverPreview(cam, li);
+      }, 60);
     });
     li.addEventListener('mouseleave', closeListHoverPreview);
   }
