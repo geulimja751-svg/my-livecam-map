@@ -945,9 +945,11 @@
       const live = item.liveStreamingDetails || {};
       const liveStart = live.actualStartTime || live.scheduledStartTime || null;
       const raw = live.concurrentViewers;
-      const count = raw != null ? Number(raw) : null;
-      if (count != null) viewerCache.set(videoId, { count, ts: Date.now() });
-      return { title, liveStart, viewers: count };
+      // API가 값을 안 주면 0으로 간주 (null이면 패널에 안 뜨던 문제)
+      const count = (raw != null && raw !== '') ? Number(raw) : 0;
+      const viewers = Number.isFinite(count) ? count : 0;
+      viewerCache.set(videoId, { count: viewers, ts: Date.now() });
+      return { title, liveStart, viewers };
     } catch (e) {
       console.warn('영상 상세 조회 실패', e.message);
       return null;
@@ -979,8 +981,17 @@
   function setPanelViewers(n) {
     const el = document.getElementById('panelViewers');
     if (!el) return;
-    const t = formatViewers(n);
-    el.textContent = t ? ('시청 ' + t) : '';
+    // 0명도 표시 (null/undefined만 숨김)
+    if (n == null || n === '') {
+      el.textContent = '';
+      return;
+    }
+    const num = Number(n);
+    if (!Number.isFinite(num)) {
+      el.textContent = '';
+      return;
+    }
+    el.textContent = '시청 ' + num.toLocaleString('ko-KR') + '명';
   }
 
   function setPanelYtMeta(cam, opts = {}) {
@@ -1360,7 +1371,7 @@
         if (meta) {
           mergeVideoMetaToCache(cam, meta);
           setPanelYtMeta(cam, { title: meta.title, liveStart: meta.liveStart });
-          if (meta.viewers != null) setPanelViewers(meta.viewers);
+          setPanelViewers(meta.viewers != null ? meta.viewers : 0);
         } else {
           // API 실패 시 캐시만 유지, 시청자만 별도 시도
           setPanelYtMeta(cam);
@@ -2280,7 +2291,10 @@
     if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
   }
   document.getElementById('modalCancel').addEventListener('click', closeModal);
-  document.getElementById('modalGenerate').addEventListener('click', () => {
+  let savingCamBusy = false;
+  document.getElementById('modalGenerate').addEventListener('click', async () => {
+    if (savingCamBusy) return;
+    const saveBtn = document.getElementById('modalGenerate');
     const name = document.getElementById('fName').value.trim() || '이름 없는 카메라';
     const urlRaw = document.getElementById('fUrl').value.trim();
     const desc = document.getElementById('fDesc').value.trim() || '설명 없음';
@@ -2300,16 +2314,72 @@
       if (camData.lat > 33 && camData.lat < 39 && camData.lng > 124 && camData.lng < 132) camData.region = '한국';
       else if (camData.lat > 30 && camData.lat < 46 && camData.lng > 129 && camData.lng < 146) camData.region = '일본';
     }
-    addCamMarker(camData);
-    cams.push(camData);
-    updateCount();
-    saveCamsToFirebase().then(ok => {
-      codeText.textContent = ok
-        ? ('Firebase에 저장됨 (' + cams.length + '개)\n이름: ' + name + '\n좌표: ' + camData.lat + ', ' + camData.lng)
-        : 'Firebase 저장 실패 — 콘솔을 확인하세요.';
+
+    // 같은 이름 존재 시 업데이트 확인
+    const nameKey = displayCamName(name).trim().toLowerCase();
+    const existing = cams.find(c => displayCamName(c.name).trim().toLowerCase() === nameKey);
+    if (existing) {
+      const okUpdate = confirm(
+        '같은 이름으로 저장된 라이브캠이 있습니다.\n\n"' + displayCamName(existing.name) + '"\n\n기존 항목을 새 정보로 업데이트할까요?'
+      );
+      if (!okUpdate) return;
+    }
+
+    savingCamBusy = true;
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = '저장 중…';
+    }
+
+    try {
+      if (existing) {
+        // 기존 마커 제거 후 필드 갱신
+        const oldMarker = camMarkers.get(existing);
+        if (oldMarker) {
+          try { map.removeLayer(oldMarker); } catch (_) {}
+          camMarkers.delete(existing);
+        }
+        // URL이 바뀌면 옛 videoId 캐시 정리
+        const oldKey = camKey(existing);
+        const oldSnap = { externalUrl: existing.externalUrl, videoId: existing.videoId, name: existing.name };
+        existing.name = camData.name;
+        existing.lat = camData.lat;
+        existing.lng = camData.lng;
+        existing.desc = camData.desc;
+        if (camData.region) existing.region = camData.region;
+        if (camData.videoId) {
+          delete existing.externalUrl;
+          existing.videoId = camData.videoId;
+        } else if (camData.externalUrl) {
+          delete existing.videoId;
+          existing.externalUrl = camData.externalUrl;
+        }
+        try {
+          if (oldKey !== camKey(existing)) clearStoredVideoId(oldSnap);
+        } catch (_) {}
+        addCamMarker(existing);
+        const ok = await saveCamsToFirebase();
+        codeText.textContent = ok
+          ? ('업데이트됨 (' + cams.length + '개)\n이름: ' + name + '\n좌표: ' + camData.lat + ', ' + camData.lng)
+          : 'Firebase 저장 실패 — 콘솔을 확인하세요.';
+      } else {
+        addCamMarker(camData);
+        cams.push(camData);
+        const ok = await saveCamsToFirebase();
+        codeText.textContent = ok
+          ? ('Firebase에 저장됨 (' + cams.length + '개)\n이름: ' + name + '\n좌표: ' + camData.lat + ', ' + camData.lng)
+          : 'Firebase 저장 실패 — 콘솔을 확인하세요.';
+      }
+      updateCount();
       codeResult.classList.add('show');
-      btnCopy.textContent = ok ? '메시지 복사' : '코드 복사';
-    });
+      btnCopy.textContent = '메시지 복사';
+    } finally {
+      savingCamBusy = false;
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '저장';
+      }
+    }
   });
 
   btnCopy.addEventListener('click', async () => {
