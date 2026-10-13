@@ -225,7 +225,8 @@
     white-space:nowrap;
   }
   .video-footer button.btn-refresh:disabled{ opacity:0.5; cursor:wait; }
-  .panel-head .btn-delete{
+  .panel-head .btn-delete,
+  .panel-head .btn-edit{
     appearance:none; background:transparent; border:none;
     color:var(--text-dim); font-size:12px; font-weight:600;
     padding:4px 8px; border-radius:6px; cursor:pointer; font-family:inherit;
@@ -233,6 +234,9 @@
   }
   .panel-head .btn-delete:hover{
     color:var(--live-red); background:rgba(255,77,94,0.12);
+  }
+  .panel-head .btn-edit:hover{
+    color:var(--accent); background:rgba(79,179,255,0.12);
   }
   .video-footer label.ctrl-label{
     display:flex; align-items:center; gap:4px; font-size:12px;
@@ -495,6 +499,7 @@
   <div class="panel-head">
     <span class="live-badge"><span class="dot"></span>LIVE</span>
     <div class="panel-title" id="panelTitle">-</div>
+    <button type="button" class="btn-edit" id="panelEditBtn" title="이름·링크·메모 수정" style="display:none">수정</button>
     <button type="button" class="btn-delete" id="panelDeleteBtn" title="이 카메라를 목록과 Firebase에서 삭제" style="display:none">삭제</button>
     <button class="panel-close" id="panelClose">✕</button>
   </div>
@@ -521,7 +526,7 @@
 </div>
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box">
-    <h3>카메라 추가</h3>
+    <h3 id="modalTitle">카메라 추가</h3>
     <div class="coord" id="modalCoord">-</div>
     <div class="field">
       <label>이름</label>
@@ -1251,8 +1256,10 @@
     const openTabBtn = document.getElementById('openTabBtn');
     const refreshBtn = document.getElementById('panelRefreshBtn');
     const deleteBtn = document.getElementById('panelDeleteBtn');
+    const editBtn = document.getElementById('panelEditBtn');
     const openYtBtnEarly = document.getElementById('openYtBtn');
     if (deleteBtn) deleteBtn.style.display = '';
+    if (editBtn) editBtn.style.display = '';
     if (openYtBtnEarly) openYtBtnEarly.style.display = 'none';
 
     videoFooter.style.display = 'flex';
@@ -1451,6 +1458,11 @@
     const cam = activeCamForPanel;
     if (!cam) return;
     removeCam(cam);
+  });
+  document.getElementById('panelEditBtn')?.addEventListener('click', () => {
+    const cam = activeCamForPanel;
+    if (!cam) return;
+    openEditCamModal(cam);
   });
 
   const camCountEl = document.getElementById('camCount');
@@ -1786,6 +1798,8 @@
     document.getElementById('panelTitle').textContent = c.cctvname || 'CCTV';
     const delBtn = document.getElementById('panelDeleteBtn');
     if (delBtn) delBtn.style.display = 'none';
+    const editBtnCctv = document.getElementById('panelEditBtn');
+    if (editBtnCctv) editBtnCctv.style.display = 'none';
     document.getElementById('panelDesc').textContent = c.roadsectionid ? `구간: ${c.roadsectionid}` : 'ITS CCTV';
     document.getElementById('panelSrc').textContent = 'source: ITS';
     setPanelYtMeta(null);
@@ -2248,6 +2262,7 @@
   const codeText = document.getElementById('codeText');
   const btnCopy = document.getElementById('btnCopy');
   let pickMode = false, pickedLatLng = null, tempMarker = null;
+  let editingCam = null; // 패널에서 수정 중인 카메라
 
   function togglePickMode(force) {
     pickMode = force !== undefined ? force : !pickMode;
@@ -2262,6 +2277,8 @@
     if (tempMarker) map.removeLayer(tempMarker);
     tempMarker = L.marker(e.latlng, { icon: L.divIcon({ className: 'temp-marker', iconSize: [22, 22] }) }).addTo(map);
     modalCoord.textContent = `위도 ${e.latlng.lat.toFixed(6)}, 경도 ${e.latlng.lng.toFixed(6)}`;
+    editingCam = null;
+    document.getElementById('modalTitle').textContent = '카메라 추가';
     document.getElementById('fName').value = '';
     document.getElementById('fUrl').value = '';
     document.getElementById('fDesc').value = '';
@@ -2288,7 +2305,25 @@
   }
   function closeModal() {
     modalOverlay.classList.remove('show');
+    editingCam = null;
     if (tempMarker) { map.removeLayer(tempMarker); tempMarker = null; }
+  }
+
+  function openEditCamModal(cam) {
+    if (!cam) return;
+    editingCam = cam;
+    pickedLatLng = L.latLng(cam.lat, cam.lng);
+    document.getElementById('modalTitle').textContent = '카메라 수정';
+    document.getElementById('modalCoord').textContent =
+      '위도 ' + Number(cam.lat).toFixed(6) + ', 경도 ' + Number(cam.lng).toFixed(6) + ' (위치 유지)';
+    document.getElementById('fName').value = cam.name || '';
+    document.getElementById('fUrl').value = cam.externalUrl || (cam.videoId ? ('https://www.youtube.com/watch?v=' + cam.videoId) : '');
+    document.getElementById('fDesc').value = (cam.desc && cam.desc !== '설명 없음') ? cam.desc : (cam.desc || '');
+    document.getElementById('fUrlErr').classList.remove('show');
+    codeResult.classList.remove('show');
+    const saveBtn = document.getElementById('modalGenerate');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '저장'; }
+    modalOverlay.classList.add('show');
   }
   document.getElementById('modalCancel').addEventListener('click', closeModal);
   let savingCamBusy = false;
@@ -2300,11 +2335,17 @@
     const desc = document.getElementById('fDesc').value.trim() || '설명 없음';
     const vid = extractYoutubeId(urlRaw);
     const errEl = document.getElementById('fUrlErr');
+    if (!pickedLatLng && !editingCam) {
+      alert('위치가 없습니다. 지도에서 위치를 다시 선택해 주세요.');
+      return;
+    }
+    const lat = editingCam ? +Number(editingCam.lat).toFixed(6) : +pickedLatLng.lat.toFixed(6);
+    const lng = editingCam ? +Number(editingCam.lng).toFixed(6) : +pickedLatLng.lng.toFixed(6);
     let camData;
     if (vid) {
-      camData = { name, lat: +pickedLatLng.lat.toFixed(6), lng: +pickedLatLng.lng.toFixed(6), videoId: vid, desc };
+      camData = { name, lat, lng, videoId: vid, desc };
     } else if (/^https?:\/\//i.test(urlRaw)) {
-      camData = { name, lat: +pickedLatLng.lat.toFixed(6), lng: +pickedLatLng.lng.toFixed(6), externalUrl: urlRaw, desc };
+      camData = { name, lat, lng, externalUrl: urlRaw, desc };
     } else {
       errEl.classList.add('show');
       return;
@@ -2315,14 +2356,27 @@
       else if (camData.lat > 30 && camData.lat < 46 && camData.lng > 129 && camData.lng < 146) camData.region = '일본';
     }
 
-    // 같은 이름 존재 시 업데이트 확인
-    const nameKey = displayCamName(name).trim().toLowerCase();
-    const existing = cams.find(c => displayCamName(c.name).trim().toLowerCase() === nameKey);
-    if (existing) {
-      const okUpdate = confirm(
-        '같은 이름으로 저장된 라이브캠이 있습니다.\n\n"' + displayCamName(existing.name) + '"\n\n기존 항목을 새 정보로 업데이트할까요?'
-      );
-      if (!okUpdate) return;
+    // 수정 모드: 현재 편집 카메라 업데이트
+    // 추가 모드: 같은 이름 있으면 확인 후 업데이트
+    let target = editingCam || null;
+    if (!target) {
+      const nameKey = displayCamName(name).trim().toLowerCase();
+      const existing = cams.find(c => displayCamName(c.name).trim().toLowerCase() === nameKey);
+      if (existing) {
+        const okUpdate = confirm(
+          '같은 이름으로 저장된 라이브캠이 있습니다.\n\n"' + displayCamName(existing.name) + '"\n\n기존 항목을 새 정보로 업데이트할까요?'
+        );
+        if (!okUpdate) return;
+        target = existing;
+      }
+    } else {
+      // 수정 중 이름을 다른 기존 캠과 겹치게 바꾼 경우
+      const nameKey = displayCamName(name).trim().toLowerCase();
+      const conflict = cams.find(c => c !== editingCam && displayCamName(c.name).trim().toLowerCase() === nameKey);
+      if (conflict) {
+        alert('같은 이름의 다른 라이브캠이 이미 있습니다. 다른 이름을 사용해 주세요.');
+        return;
+      }
     }
 
     savingCamBusy = true;
@@ -2332,36 +2386,43 @@
     }
 
     try {
-      if (existing) {
-        // 기존 마커 제거 후 필드 갱신
-        const oldMarker = camMarkers.get(existing);
+      if (target) {
+        const oldMarker = camMarkers.get(target);
         if (oldMarker) {
           try { map.removeLayer(oldMarker); } catch (_) {}
-          camMarkers.delete(existing);
+          camMarkers.delete(target);
         }
-        // URL이 바뀌면 옛 videoId 캐시 정리
-        const oldKey = camKey(existing);
-        const oldSnap = { externalUrl: existing.externalUrl, videoId: existing.videoId, name: existing.name };
-        existing.name = camData.name;
-        existing.lat = camData.lat;
-        existing.lng = camData.lng;
-        existing.desc = camData.desc;
-        if (camData.region) existing.region = camData.region;
+        const oldKey = camKey(target);
+        const oldSnap = { externalUrl: target.externalUrl, videoId: target.videoId, name: target.name };
+        target.name = camData.name;
+        target.lat = camData.lat;
+        target.lng = camData.lng;
+        target.desc = camData.desc;
+        if (camData.region) target.region = camData.region;
         if (camData.videoId) {
-          delete existing.externalUrl;
-          existing.videoId = camData.videoId;
+          delete target.externalUrl;
+          target.videoId = camData.videoId;
         } else if (camData.externalUrl) {
-          delete existing.videoId;
-          existing.externalUrl = camData.externalUrl;
+          delete target.videoId;
+          target.externalUrl = camData.externalUrl;
         }
         try {
-          if (oldKey !== camKey(existing)) clearStoredVideoId(oldSnap);
+          if (oldKey !== camKey(target)) clearStoredVideoId(oldSnap);
         } catch (_) {}
-        addCamMarker(existing);
+        const marker = addCamMarker(target);
         const ok = await saveCamsToFirebase();
         codeText.textContent = ok
-          ? ('업데이트됨 (' + cams.length + '개)\n이름: ' + name + '\n좌표: ' + camData.lat + ', ' + camData.lng)
+          ? ('수정 저장됨\n이름: ' + name + '\n좌표: ' + camData.lat + ', ' + camData.lng)
           : 'Firebase 저장 실패 — 콘솔을 확인하세요.';
+        codeResult.classList.add('show');
+        btnCopy.textContent = '메시지 복사';
+        updateCount();
+        // 패널 다시 열기
+        if (activeCamForPanel === target || editingCam === target) {
+          openCam(target, marker);
+        }
+        editingCam = null;
+        document.getElementById('modalTitle').textContent = '카메라 추가';
       } else {
         addCamMarker(camData);
         cams.push(camData);
@@ -2369,10 +2430,10 @@
         codeText.textContent = ok
           ? ('Firebase에 저장됨 (' + cams.length + '개)\n이름: ' + name + '\n좌표: ' + camData.lat + ', ' + camData.lng)
           : 'Firebase 저장 실패 — 콘솔을 확인하세요.';
+        codeResult.classList.add('show');
+        btnCopy.textContent = '메시지 복사';
+        updateCount();
       }
-      updateCount();
-      codeResult.classList.add('show');
-      btnCopy.textContent = '메시지 복사';
     } finally {
       savingCamBusy = false;
       if (saveBtn) {
