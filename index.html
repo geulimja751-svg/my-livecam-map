@@ -826,6 +826,40 @@
     return row;
   }
 
+  /** offline/error/quota 상태 제거 (강제 videoId 지정·재생 성공 시) */
+  function clearResolveStatus(cam) {
+    if (!cam) return;
+    const all = loadResolvedMap();
+    const key = camKey(cam);
+    const row = all[key];
+    if (row && row.status) {
+      // videoId 캐시는 유지하고 status만 제거
+      if (row.videoId) {
+        const next = { videoId: row.videoId, name: row.name || displayCamName(cam.name), ts: row.ts || Date.now() };
+        if (row.ytTitle) next.ytTitle = row.ytTitle;
+        if (row.liveStart) next.liveStart = row.liveStart;
+        all[key] = next;
+      } else {
+        delete all[key];
+      }
+      saveResolvedMap(all);
+    }
+    // externalUrl 키와 videoId 키 둘 다 정리
+    const keys = new Set([key]);
+    if (cam.externalUrl) keys.add(cam.externalUrl);
+    if (cam.videoId) keys.add(cam.videoId);
+    for (const k of keys) {
+      STATUS_DOC.set({ [k]: firebase.firestore.FieldValue.delete() }, { merge: true }).catch(() => {});
+      const r = all[k];
+      if (r && r.status && !r.videoId) {
+        delete all[k];
+      } else if (r && r.status && r.videoId) {
+        all[k] = { videoId: r.videoId, name: r.name, ts: r.ts || Date.now() };
+      }
+    }
+    saveResolvedMap(all);
+  }
+
   function resolveFromLiveRedirect(externalUrl, force) {
     return new Promise((resolve, reject) => {
       let u;
@@ -1277,6 +1311,14 @@
     hint.classList.add('hidden');
 
     let videoId = getStoredVideoId(cam);
+
+    // 재생 가능한 ID가 있으면 offline 캐시 정리
+    if (videoId) {
+      const st = getResolveStatus(cam);
+      if (st && (st.status === 'offline' || st.status === 'error')) {
+        try { clearResolveStatus(cam); } catch (_) {}
+      }
+    }
 
     if (!videoId && cam.externalUrl) {
       const status = getResolveStatus(cam);
@@ -2124,8 +2166,8 @@
     }
 
     const sorted = [...filtered].sort((a, b) => {
-      const statusA = getResolveStatus(a);
-      const statusB = getResolveStatus(b);
+      const statusA = getStoredVideoId(a) ? null : getResolveStatus(a);
+      const statusB = getStoredVideoId(b) ? null : getResolveStatus(b);
       const offlineA = statusA?.status === 'offline' || statusA?.status === 'error' || statusA?.status === 'quota';
       const offlineB = statusB?.status === 'offline' || statusB?.status === 'error' || statusB?.status === 'quota';
       if (offlineA && !offlineB) return 1;
@@ -2141,7 +2183,8 @@
     for (const c of sorted) {
       const li = document.createElement('li');
       const vid = getStoredVideoId(c);
-      const resolveStatus = getResolveStatus(c);
+      // 강제/캐시 videoId가 있으면 예전 offline 상태 무시
+      const resolveStatus = vid ? null : getResolveStatus(c);
 
       const n = getViewerCount(c);
       let initial = '-';
@@ -2458,6 +2501,10 @@
         try {
           if (oldKey !== camKey(target)) clearStoredVideoId(oldSnap);
         } catch (_) {}
+        // 강제 videoId 지정 시 예전 offline 상태 제거
+        if (target.videoId) {
+          try { clearResolveStatus(target); } catch (_) {}
+        }
         const marker = addCamMarker(target);
         const ok = await saveCamsToFirebase();
         codeText.textContent = ok
@@ -2473,6 +2520,9 @@
         editingCam = null;
         document.getElementById('modalTitle').textContent = '카메라 추가';
       } else {
+        if (camData.videoId) {
+          try { clearResolveStatus(camData); } catch (_) {}
+        }
         addCamMarker(camData);
         cams.push(camData);
         const ok = await saveCamsToFirebase();
