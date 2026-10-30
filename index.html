@@ -320,10 +320,17 @@
   .modal-box .coord{ font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:14px; }
   .field{ margin-bottom:12px; }
   .field label{ display:block; font-size:11.5px; color:var(--text-dim); margin-bottom:5px; }
-  .field input, .field textarea{
+  .field input, .field textarea, .field select{
     width:100%; background:#0a0e14; border:1px solid var(--line); color:var(--text);
     font-size:13px; padding:9px 10px; border-radius:8px; font-family:inherit; resize:none;
   }
+  .field select{
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237d8a9a' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center;
+    padding-right:32px; cursor:pointer;
+  }
+  .field select option{ background:#0a0e14; color:var(--text); }
   .field .err{ color:var(--live-red); font-size:11px; margin-top:5px; display:none; }
   .field .err.show{ display:block; }
   .modal-actions{ display:flex; gap:8px; }
@@ -531,6 +538,27 @@
     <div class="field">
       <label>이름</label>
       <input type="text" id="fName" placeholder="예: 해운대 해수욕장">
+    </div>
+    <div class="field">
+      <label>국가 / 지역</label>
+      <select id="fRegion">
+        <option value="">자동 감지 (좌표 기준)</option>
+        <option value="한국">한국</option>
+        <option value="일본">일본</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>세부 지역 (목록 필터용)</label>
+      <select id="fCity">
+        <option value="">없음</option>
+        <option value="서울">서울</option>
+        <option value="부산">부산</option>
+        <option value="오사카">오사카</option>
+        <option value="도쿄">도쿄</option>
+        <option value="시부야">시부야</option>
+        <option value="신주쿠">신주쿠</option>
+      </select>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.4">목록 상단 지역 필터에 걸립니다. 비우면 이름 키워드로만 매칭됩니다.</div>
     </div>
     <div class="field">
       <label>영상 링크</label>
@@ -2110,12 +2138,17 @@
   const LIST_FILTERS = {
     '한국': (c) => c.region === '한국',
     '일본': (c) => c.region === '일본',
-    '서울': (c) => c.region === '한국' && /서울|한강|잠실|반포|홍대|남산|노들|동대문|DDP|월드컵|가양|동호|석촌|롯데/.test(c.name),
-    '부산': (c) => c.region === '한국' && /부산|해운대|송정|광안|부경/.test(c.name),
-    '오사카': (c) => c.region === '일본' && /오사카|글리코|츠텐|우메다|요도|신사이|니혼|에비스/.test(c.name),
-    '도쿄': (c) => c.region === '일본' && /도쿄|가부키|신주쿠|시부야|아사쿠사|센소지|아키하|시오도메|고질라|시네시티/.test(c.name),
-    '시부야': (c) => /시부야/.test(c.name),
-    '신주쿠': (c) => /신주쿠|가부키|고질라|시네시티/.test(c.name),
+    '서울': (c) => c.city === '서울' || (c.region === '한국' && /서울|한강|잠실|반포|홍대|남산|노들|동대문|DDP|월드컵|가양|동호|석촌|롯데/.test(c.name)),
+    '부산': (c) => c.city === '부산' || (c.region === '한국' && /부산|해운대|송정|광안|부경/.test(c.name)),
+    '오사카': (c) => c.city === '오사카' || (c.region === '일본' && /오사카|글리코|츠텐|우메다|요도|신사이|니혼|에비스/.test(c.name)),
+    '도쿄': (c) => c.city === '도쿄' || (c.region === '일본' && /도쿄|가부키|신주쿠|시부야|아사쿠사|센소지|아키하|시오도메|고질라|시네시티/.test(c.name)),
+    '시부야': (c) => c.city === '시부야' || /시부야/.test(c.name),
+    '신주쿠': (c) => c.city === '신주쿠' || /신주쿠|가부키|고질라|시네시티/.test(c.name),
+  };
+
+  const CITY_TO_REGION = {
+    '서울': '한국', '부산': '한국',
+    '오사카': '일본', '도쿄': '일본', '시부야': '일본', '신주쿠': '일본',
   };
 
   function matchListFilter(c) {
@@ -2355,6 +2388,8 @@
     editingCam = null;
     document.getElementById('modalTitle').textContent = '카메라 추가';
     document.getElementById('fName').value = '';
+    document.getElementById('fRegion').value = '';
+    document.getElementById('fCity').value = '';
     document.getElementById('fUrl').value = '';
     document.getElementById('fForceVideoId').value = '';
     document.getElementById('fDesc').value = '';
@@ -2393,6 +2428,8 @@
     document.getElementById('modalCoord').textContent =
       '위도 ' + Number(cam.lat).toFixed(6) + ', 경도 ' + Number(cam.lng).toFixed(6) + ' (위치 유지)';
     document.getElementById('fName').value = cam.name || '';
+    document.getElementById('fRegion').value = cam.region || '';
+    document.getElementById('fCity').value = cam.city || '';
     document.getElementById('fUrl').value = cam.externalUrl || '';
     document.getElementById('fForceVideoId').value = cam.videoId || '';
     document.getElementById('fDesc').value = (cam.desc && cam.desc !== '설명 없음') ? cam.desc : (cam.desc || '');
@@ -2445,6 +2482,14 @@
     }
     errEl.classList.remove('show');
 
+    const regionSel = (document.getElementById('fRegion').value || '').trim();
+    const citySel = (document.getElementById('fCity').value || '').trim();
+    if (regionSel) camData.region = regionSel;
+    if (citySel) {
+      camData.city = citySel;
+      // 세부 지역 선택 시 국가가 비어 있으면 자동 맞춤
+      if (!camData.region && CITY_TO_REGION[citySel]) camData.region = CITY_TO_REGION[citySel];
+    }
     if (!camData.region) {
       if (camData.lat > 33 && camData.lat < 39 && camData.lng > 124 && camData.lng < 132) camData.region = '한국';
       else if (camData.lat > 30 && camData.lat < 46 && camData.lng > 129 && camData.lng < 146) camData.region = '일본';
@@ -2493,6 +2538,9 @@
         target.lng = camData.lng;
         target.desc = camData.desc;
         if (camData.region) target.region = camData.region;
+        else delete target.region;
+        if (camData.city) target.city = camData.city;
+        else delete target.city;
         // 링크 / 강제 ID 각각 반영 (둘 다 가능)
         if (camData.externalUrl) target.externalUrl = camData.externalUrl;
         else delete target.externalUrl;
