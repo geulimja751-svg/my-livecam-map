@@ -488,6 +488,7 @@
     </div>
     <div class="list-filters" id="listFilters">
       <button type="button" data-filter="all" class="active">전체</button>
+      <button type="button" data-filter="없음">없음</button>
       <button type="button" data-filter="한국">한국</button>
       <button type="button" data-filter="일본">일본</button>
       <button type="button" data-filter="서울">서울</button>
@@ -2136,6 +2137,8 @@
   let activeListFilters = new Set();
 
   const LIST_FILTERS = {
+    // 국가·세부 지역 모두 비어 있는 캠
+    '없음': (c) => !c.region && !c.city,
     '한국': (c) => c.region === '한국',
     '일본': (c) => c.region === '일본',
     '서울': (c) => c.city === '서울' || (c.region === '한국' && /서울|한강|잠실|반포|홍대|남산|노들|동대문|DDP|월드컵|가양|동호|석촌|롯데/.test(c.name)),
@@ -2150,6 +2153,32 @@
     '서울': '한국', '부산': '한국',
     '오사카': '일본', '도쿄': '일본', '시부야': '일본', '신주쿠': '일본',
   };
+
+  // 이름 키워드로 세부 지역 추론 (더 구체적인 것 우선)
+  const CITY_INFER_PATTERNS = [
+    ['시부야', /시부야/],
+    ['신주쿠', /신주쿠|가부키|고질라|시네시티/],
+    ['서울', /서울|한강|잠실|반포|홍대|남산|노들|동대문|DDP|월드컵|가양|동호|석촌|롯데/],
+    ['부산', /부산|해운대|송정|광안|부경/],
+    ['오사카', /오사카|글리코|츠텐|우메다|요도|신사이|니혼|에비스/],
+    ['도쿄', /도쿄|아사쿠사|센소지|아키하|시오도메/],
+  ];
+
+  function inferCity(cam) {
+    if (cam.city) return cam.city;
+    const name = String(cam.name || '');
+    for (const [city, re] of CITY_INFER_PATTERNS) {
+      if (re.test(name)) return city;
+    }
+    return '';
+  }
+
+  function inferRegion(cam) {
+    if (cam.region) return cam.region;
+    const city = inferCity(cam);
+    if (city && CITY_TO_REGION[city]) return CITY_TO_REGION[city];
+    return '';
+  }
 
   function matchListFilter(c) {
     if (activeListFilters.size === 0) return true;
@@ -2428,8 +2457,8 @@
     document.getElementById('modalCoord').textContent =
       '위도 ' + Number(cam.lat).toFixed(6) + ', 경도 ' + Number(cam.lng).toFixed(6) + ' (위치 유지)';
     document.getElementById('fName').value = cam.name || '';
-    document.getElementById('fRegion').value = cam.region || '';
-    document.getElementById('fCity').value = cam.city || '';
+    document.getElementById('fRegion').value = inferRegion(cam) || '';
+    document.getElementById('fCity').value = inferCity(cam) || '';
     document.getElementById('fUrl').value = cam.externalUrl || '';
     document.getElementById('fForceVideoId').value = cam.videoId || '';
     document.getElementById('fDesc').value = (cam.desc && cam.desc !== '설명 없음') ? cam.desc : (cam.desc || '');
